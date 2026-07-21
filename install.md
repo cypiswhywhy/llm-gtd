@@ -2,13 +2,17 @@
 
 A self-contained prompt for setting this system up in an Obsidian vault — paste it into Claude Code after the one manual step below. It embeds the full schema, so Claude Code can write every file from scratch without needing access to this repo.
 
-Works on a **fresh vault** or an **existing one**: everything the system creates is namespaced under `GTD/` (plus `clipper/` and two Claude skills), and the prompt below carries guard clauses so it merges into — rather than overwrites — a vault that already has content. The running system also only ever reads and writes inside `GTD/`, so your existing notes are never touched.
+Works on a **fresh vault** or an **existing one**: almost everything the system creates is namespaced under `GTD/` (plus `clipper/` and the Claude skills), and the prompt below carries guard clauses so it merges into — rather than overwrites — a vault that already has content. The one thing it writes outside `GTD/` is a single namespaced CSS snippet (`.obsidian/snippets/gtd-kanban.css`) that keeps the board's cards tidy; beyond that it only reads and writes inside `GTD/`, so your existing notes are never touched.
 
-## One-time manual step
+## One-time manual steps
 
-In Obsidian: Settings → Community plugins → enable, then install these six: `Dataview`, `Templater`, `Obsidian Kanban`, `kanban-bases-view`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. (`kanban-bases-view` needs Obsidian's Bases feature, so use a reasonably current version.)
+These happen in Obsidian's own UI — no prompt can do them.
 
-No prompt can do this part — plugins are installed through Obsidian's own plugin browser.
+1. **Install the plugins.** Settings → Community plugins → enable, then install these six: `Dataview`, `Templater`, `Obsidian Kanban`, `kanban-bases-view`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. (`kanban-bases-view` needs Obsidian's Bases feature, so use a reasonably current version.)
+
+2. **Auto-fill frontmatter on new notes** — so items you create by hand in the inbox get `created`/`source` without thinking. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add a mapping: folder `GTD/Items` → template `Templates/GTD Item.md`. Now any note you create in `GTD/Items/` is stamped with the schema frontmatter automatically. (Web-clipped notes already carry it; this covers the hand-made ones. Triage also backfills anything that still slips through.)
+
+The board's cards are kept clean automatically: the prompt creates and enables a small CSS snippet (`.obsidian/snippets/gtd-kanban.css`) that hides the property-name labels, so a card reads `tag1 tag2` instead of `Tags: tag1 tag2`. You may just need to **reload Obsidian once** (Ctrl/Cmd+R) after setup for it to take effect.
 
 ## The prompt
 
@@ -36,7 +40,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 2.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 3.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -47,6 +51,7 @@ Report which of the files below already existed and how you handled each before 
     GTD/Log.md        # append-only activity log
     Templates/GTD Item.md   # Templater template for new items
     clipper/          # Obsidian Web Clipper template
+    .obsidian/snippets/gtd-kanban.css   # the ONE file written outside GTD/ — hides card property labels
     ```
 
     ## Item schema
@@ -82,7 +87,7 @@ Report which of the files below already existed and how you handled each before 
 
     ## Operations
 
-    - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless.
+    - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.
     - **triage** (`/gtd-triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
     - **review** (`/gtd-review`) — the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
     - **query** — answer questions from item notes ("what am I waiting for?", "what did I research about shoes?"). Read-only.
@@ -94,10 +99,10 @@ Report which of the files below already existed and how you handled each before 
     3. **Bump `updated`** (YYYY-MM-DD) on every note you modify.
     4. **Log every operation** in `GTD/Log.md`: append-only, newest at the bottom, format `YYYY-MM-DD HH:MM [op] message`. Never rewrite existing lines.
     5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.
-    6. **Don't touch** `.obsidian/` config or `GTD/Board.base` during item operations.
+    6. **Don't touch** `.obsidian/` config or `GTD/Board.base` during item operations. The sole exception to writing outside `GTD/` is the `gtd-kanban` CSS snippet — and even that is only created/enabled by `/gtd-update`, never during capture/triage/review.
     7. Frontmatter must always match the schema above — no extra keys, no renamed keys.
 
-## 2. `Templates/GTD Item.md` (Templater template — new notes in `GTD/Items/` auto-apply this)
+## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
     ---
     status: inbox
@@ -127,7 +132,6 @@ Report which of the files below already existed and how you handled each before 
       - type: kanban-view
         name: Board
         order:
-          - file.name
           - tags
         groupByProperty: note.status
         columnOrders:
@@ -192,6 +196,8 @@ Report which of the files below already existed and how you handled each before 
           - property: updated
             direction: DESC
 
+The **kanban view's** `order:` lists only `tags` on purpose: the card already shows the note name as its title, so listing `file.name` there would print the name a second time. The **table** views keep `file.name` because a table needs it as a column.
+
 ## 4. `GTD/Log.md`
 
     # GTD Log
@@ -237,7 +243,7 @@ Report which of the files below already existed and how you handled each before 
 
     ## Steps
 
-    1. **Collect.** Read frontmatter of all notes in `GTD/Items/`; select those with `status: inbox`, oldest `created` first. If none: say the inbox is empty and stop.
+    1. **Collect.** Read frontmatter of all notes in `GTD/Items/`; select those with `status: inbox`, oldest `created` first. Some hand-made notes may lack `created` or `source` — for ordering, treat a missing `created` as the note's file-creation date. If none: say the inbox is empty and stop.
 
     2. **Build the tag vocabulary.** Gather all `tags` used across `GTD/Items/` and `GTD/Archive/` so suggestions reuse existing tags.
 
@@ -254,7 +260,7 @@ Report which of the files below already existed and how you handled each before 
 
     4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.
 
-    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched.
+    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. This heals hand-made notes that bypassed the template.
 
     6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] "<title>" → <status> (tags: ...)`.
 
@@ -332,11 +338,27 @@ Report which of the files below already existed and how you handled each before 
     5. **`.claude/skills/gtd-review/SKILL.md`** — delete the "Done sync" check, renumber the remaining checks, and remove "sync done checkboxes" from the `description`.
     6. **`CLAUDE.md`** — delete the `done:` frontmatter line and its comment; add the "single source of truth / drag to the Done column" notes; remove "sync `done`," from the review operation line.
 
+    ### v2 → v3 — cleaner kanban cards + auto-frontmatter for hand-made items
+
+    Two fixes. (1) The kanban card printed the note name twice — once as the card title, once as a `file.name` property — and prefixed every property with its label (`Tags: ...`). (2) Notes created by hand in `GTD/Items/` (not via the template or web clipper) were missing `created`/`source`.
+
+    Changes to apply:
+
+    1. **`GTD/Board.base`** — in the **kanban view's** `order:` list, delete the `- file.name` line (keep `- tags`). The card already shows the note name as its title, so `file.name` there rendered it a second time. Do NOT touch the table views' `order:` lists — those still need `file.name` as a column.
+    2. **`.claude/skills/gtd-triage/SKILL.md`** — add frontmatter backfill when processing the inbox: if an item is missing `created`, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. Hand-made notes then self-heal to the schema at triage time.
+    3. **`.obsidian/snippets/gtd-kanban.css`** — create it containing `.obk-card-property-label { display: none; }`, then enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, don't overwrite). This hides the property-name labels so cards read `tag1 tag2` instead of `Tags: tag1 tag2` — the `kanban-bases-view` plugin always draws the label, so CSS is the only way. **This is the one place llm-gtd writes outside `GTD/`.** After applying, tell the user to reload Obsidian (Ctrl/Cmd+R or reopen the vault) for it to take effect, and warn that if Obsidian was running during the migration it may rewrite `appearance.json` on exit — in which case the snippet just needs enabling once in Settings → Appearance → CSS snippets.
+    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`; add `.obsidian/snippets/gtd-kanban.css` to the Layout as the one file written outside `GTD/`; and nuance the "don't touch `.obsidian/`" rule so it allows creating/enabling this snippet during `/gtd-update`.
+
+    Manual step to REPORT to the user (it lives in `.obsidian/` plugin config and can't be scripted reliably — tell the user, don't attempt it):
+
+    - **Auto-fill new notes:** Settings → Templater → enable "Trigger Templater on new file creation", then add a Folder Template mapping `GTD/Items` → `Templates/GTD Item.md`. Every note created in `GTD/Items/` then gets the schema frontmatter automatically.
+
 ## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, and that `/gtd-update` brings the vault up to date after a schema change.
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v2): board, template, schema, skills created.`
+- **`.obsidian/snippets/gtd-kanban.css`** containing `.obk-card-property-label { display: none; }`, and enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, never overwrite). This is the only file written outside `GTD/`; it hides the property-name labels on kanban cards. Tell me to reload Obsidian (Ctrl/Cmd+R) once so it takes effect, and note that if Obsidian was open while you wrote `appearance.json` it may overwrite the edit on exit — I can just re-enable the snippet in Settings → Appearance → CSS snippets.
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, and that `/gtd-update` brings the vault up to date after a schema change.
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v3): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 
