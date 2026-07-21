@@ -1,6 +1,8 @@
 # Installing LLM-GTD elsewhere
 
-A self-contained prompt for setting this system up in a fresh Obsidian vault — paste it into Claude Code after the one manual step below. It embeds the full schema, so Claude Code can write every file from scratch without needing access to this repo.
+A self-contained prompt for setting this system up in an Obsidian vault — paste it into Claude Code after the one manual step below. It embeds the full schema, so Claude Code can write every file from scratch without needing access to this repo.
+
+Works on a **fresh vault** or an **existing one**: everything the system creates is namespaced under `GTD/` (plus `clipper/` and two Claude skills), and the prompt below carries guard clauses so it merges into — rather than overwrites — a vault that already has content. The running system also only ever reads and writes inside `GTD/`, so your existing notes are never touched.
 
 ## One-time manual step
 
@@ -16,7 +18,19 @@ Open a terminal at the vault's root and run Claude Code, then paste this in:
 
 Set up a GTD (Getting Things Done) system in this Obsidian vault, following the "llm-wiki" idea (https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): I capture and decide, you do the bookkeeping. Create the following files exactly as specified — don't improvise on the schema.
 
-## 1. `CLAUDE.md` at the vault root
+## Before you touch anything — existing-vault safety
+
+This vault may already contain notes. **Never overwrite or delete existing content.** First check what's already there and adapt:
+
+- **`CLAUDE.md` at the root** — if it already exists, do NOT replace it. Append the schema below under a new `# LLM-GTD — vault schema` heading (or a clearly separated section), preserving everything already in the file.
+- **`README.md` at the root** — if it already exists, do NOT replace it. Append the GTD usage notes (step 8) under a new `## LLM-GTD` heading instead.
+- **`GTD/`, `Templates/GTD Item.md`, `clipper/gtd-clipper-template.json`, `.claude/skills/gtd-triage/`, `.claude/skills/gtd-review/`** — if any of these already exist, STOP and report the collision instead of overwriting. Ask me how to proceed (rename, merge, or skip). Only create the ones that are absent.
+- **`Templates/`** — this folder may already exist and hold other templates; add `GTD Item.md` alongside them, don't disturb the rest.
+- Everything the system creates lives under `GTD/` (plus the two skills and `clipper/`). Do not read, move, retag, or modify any pre-existing note outside `GTD/` at any point.
+
+Report which of the files below already existed and how you handled each before writing anything.
+
+## 1. `CLAUDE.md` at the vault root (append if the file already exists — see safety note above)
 
     # LLM-GTD — vault schema
 
@@ -282,7 +296,7 @@ Set up a GTD (Getting Things Done) system in this Obsidian vault, following the 
 ## 8. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
-- A short `README.md` at the root explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), and that `/gtd-triage` and `/gtd-review` are the two maintenance routines.
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), and that `/gtd-triage` and `/gtd-review` are the two maintenance routines.
 - Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized: board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
