@@ -36,6 +36,8 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
+    **Schema version: 2.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+
     ## Layout
 
     ```
@@ -58,9 +60,10 @@ Report which of the files below already existed and how you handled each before 
     created: YYYY-MM-DD
     updated: YYYY-MM-DD   # bump on EVERY meaningful change
     source:         # URL for web clips; empty otherwise
-    done: false     # checkbox; done: true must eventually mean status: done (review syncs it)
     ---
     ```
+
+    `status` is the single source of truth and the ONLY completion signal — an item is done when `status: done`, nothing else. There is deliberately no separate `done` boolean: the kanban plugin has no per-card checkbox that moves a card between columns, so a second field would just drift out of sync with `status`.
 
     Status vocabulary (kanban columns, in order):
 
@@ -75,11 +78,13 @@ Report which of the files below already existed and how you handled each before 
 
     Note title = file name, short and action-oriented ("Buy trail running shoes", not "shoes"). Body holds content: clip summaries, links, checklists, research.
 
+    To complete an item on the board, **drag its card to the `done` column** — that sets `status: done`. (Dragging between any two columns is how the board rewrites `status`.)
+
     ## Operations
 
     - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless.
     - **triage** (`/gtd-triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
-    - **review** (`/gtd-review`) — the lint pass: flag stale items, sync `done`, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
+    - **review** (`/gtd-review`) — the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
     - **query** — answer questions from item notes ("what am I waiting for?", "what did I research about shoes?"). Read-only.
 
     ## Rules for the agent
@@ -100,7 +105,6 @@ Report which of the files below already existed and how you handled each before 
     created: <% tp.date.now("YYYY-MM-DD") %>
     updated: <% tp.date.now("YYYY-MM-DD") %>
     source:
-    done: false
     ---
 
 ## 3. `GTD/Board.base` (Bases file — needs the `kanban-bases-view` plugin)
@@ -117,8 +121,6 @@ Report which of the files below already existed and how you handled each before 
         displayName: Created
       note.updated:
         displayName: Updated
-      note.done:
-        displayName: Done
       note.source:
         displayName: Source
     views:
@@ -127,7 +129,6 @@ Report which of the files below already existed and how you handled each before 
         order:
           - file.name
           - tags
-          - done
         groupByProperty: note.status
         columnOrders:
           note.status:
@@ -218,8 +219,7 @@ Report which of the files below already existed and how you handled each before 
         { "name": "tags", "value": "", "type": "multitext" },
         { "name": "created", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
         { "name": "updated", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
-        { "name": "source", "value": "{{url}}", "type": "text" },
-        { "name": "done", "value": "false", "type": "checkbox" }
+        { "name": "source", "value": "{{url}}", "type": "text" }
       ],
       "triggers": []
     }
@@ -264,7 +264,7 @@ Report which of the files below already existed and how you handled each before 
 
     ---
     name: gtd-review
-    description: GTD weekly review / lint pass — flag stale items, sync done checkboxes, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
+    description: GTD weekly review / lint pass — flag stale items, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
     ---
 
     # GTD review (lint pass)
@@ -280,10 +280,9 @@ Report which of the files below already existed and how you handled each before 
     3. **Stalled waiting** — `waiting` untouched > 14 days → suggest a follow-up action (ping the other party) or unblocking.
     4. **Old next** — `next` untouched > 30 days → honesty check: promote to `focus` or demote to `someday`.
     5. **Someday resurface** — pick up to 5 `someday` items (oldest `updated` first) and ask whether any should become `next` or be closed.
-    6. **Done sync** — `done: true` but `status != done` → set `status: done`. `status: done` but `done: false` → set `done: true`.
-    7. **Archive** — `status: done` with `updated` older than 30 days → move the file to `GTD/Archive/` (plain `mv`, keep the name).
-    8. **Hygiene** — items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.
-    9. **Knowledge distillation** — for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.
+    6. **Archive** — `status: done` with `updated` older than 30 days → move the file to `GTD/Archive/` (plain `mv`, keep the name).
+    7. **Hygiene** — items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.
+    8. **Knowledge distillation** — for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.
 
     ## Output
 
@@ -293,15 +292,59 @@ Report which of the files below already existed and how you handled each before 
     4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.
     5. Close with the 1–3 things that most need the user's attention this week.
 
-## 8. Also create
+## 8. `.claude/skills/gtd-update/SKILL.md`
+
+    ---
+    name: gtd-update
+    description: Bring this LLM-GTD vault up to the current schema version — apply any pending schema migrations to frontmatter, the board, template, clipper, and skills. Use when the schema changed, after pulling a new version of the scripts, or when something references a `done`/legacy field that no longer fits the schema.
+    ---
+
+    # GTD schema migration
+
+    Reconcile this vault to the latest LLM-GTD schema version. Follow the propose-then-apply rule in `CLAUDE.md` and never touch notes outside `GTD/`.
+
+    ## How versioning works
+
+    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md`. If that marker is absent, treat the vault as **version 1** (the original release, before versioning). The latest version this skill knows is the highest entry in the changelog below.
+
+    ## Steps
+
+    1. **Read the current version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
+    2. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
+    3. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
+    4. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
+    5. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
+    6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
+    7. **Report** what changed and anything I should eyeball.
+
+    If the repo's `update.md` advertises a version higher than the top of this changelog, this skill is stale — run `update.md` instead (it migrates the vault *and* refreshes this skill).
+
+    ## Changelog (oldest first; the canonical copy lives in the repo's `update.md`)
+
+    ### v1 → v2 — drop the redundant `done` field (status is the single source of truth)
+
+    The old schema carried a `done: false` boolean beside `status`. The kanban plugin can't bind a card checkbox to a column, so it never moved cards and only drifted out of sync. v2 removes it: an item is done when `status: done` (drag the card to the Done column).
+
+    1. **Item + archive notes** — in every note under `GTD/Items/` and `GTD/Archive/`, delete the `done:` frontmatter line. Change nothing else.
+    2. **`Templates/GTD Item.md`** — delete the `done: false` line.
+    3. **`GTD/Board.base`** — delete the `note.done` property block; in the kanban view's `order:` list delete the `- done` entry. KEEP the `- done` under `columnOrders` — that is the Done *column*, not the field.
+    4. **`clipper/gtd-clipper-template.json`** — delete the `{ "name": "done", ... }` object from `properties`.
+    5. **`.claude/skills/gtd-review/SKILL.md`** — delete the "Done sync" check, renumber the remaining checks, and remove "sync done checkboxes" from the `description`.
+    6. **`CLAUDE.md`** — delete the `done:` frontmatter line and its comment; add the "single source of truth / drag to the Done column" notes; remove "sync `done`," from the review operation line.
+
+## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), and that `/gtd-triage` and `/gtd-review` are the two maintenance routines.
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized: board, template, schema, skills created.`
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, and that `/gtd-update` brings the vault up to date after a schema change.
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v2): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 
 ---
+
+## Updating an existing vault
+
+Already have LLM-GTD installed and want to pick up a schema change (like the `done`-field removal in v2)? Don't re-run this installer — use [`update.md`](update.md), a self-contained prompt that migrates a vault in place from whatever version it's on to the latest, non-destructively. Vaults installed from this version onward also get a `/gtd-update` skill that does the same job from inside the vault.
 
 ## Also
 
