@@ -40,7 +40,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 3.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 4.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -331,9 +331,14 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
     2. **Self-check for a newer changelog.**
        - If `CANONICAL_SOURCE` is `(unset)`: ask me for it — the public raw URL of the repo's `update.md`, or a local path to my clone's copy (see above). If I give one, write it into the `CANONICAL_SOURCE:` line above so it persists for next time. If I decline, skip to step 3 using the baked-in changelog and warn that the latest-version check was skipped.
        - If `CANONICAL_SOURCE` is set, read it — fetch it if it's a URL, read the file if it's a path:
-         - **Reachable, and its highest `### vX → vY` entry is newer than the top of my baked-in changelog** → I'm stale. Use *that file's* changelog (its steps, not mine) for planning and applying. After applying, overwrite this `SKILL.md` with the `gtd-update` skill embedded in that file, but **keep my current `CANONICAL_SOURCE` value** — re-inject it, don't revert it to `(unset)`.
-         - **Reachable but not newer** → I'm current; use my baked-in changelog.
-         - **Unreachable** (path moved, clone missing, URL 404/private, offline, fetch blocked) → warn, say which source failed, fall back to the baked-in changelog, and remind me I can run `update.md` manually.
+         - **Reachable, and its highest `### vX → vY` entry is newer than the top of my baked-in changelog** → I'm stale. Use *that file's* changelog (its steps, not mine) for planning and applying. After applying, overwrite this `SKILL.md` with the `gtd-update` skill embedded in that file, then set the `CANONICAL_SOURCE:` line per the relocation rule below.
+         - **Reachable but not newer** → I'm current; use my baked-in changelog. Still apply the relocation rule — a repo can move without the schema changing.
+         - **Unreachable** (path moved, clone missing, URL 404/private, offline, fetch blocked) → the repo may have **moved**. Say which source failed, ask me for its new location, and if I give one, write it into `CANONICAL_SOURCE:` and retry the read once. If I decline or the retry also fails, fall back to the baked-in changelog, warn that the latest-version check was skipped, and remind me I can run `update.md` manually.
+
+       **Relocation rule** — whenever the canonical file was read successfully, compare the `CANONICAL_SOURCE:` value declared *inside it* against mine:
+       - Mine is a **URL** and theirs differs → **adopt theirs**, and say so in the report. This is how a repo announces that it moved: the canonical file is authoritative about where the canon lives.
+       - Mine is a **local path** → **keep mine**. A local path is a deliberate override (offline work, testing unpushed migrations) and must survive a refresh.
+       - Never revert `CANONICAL_SOURCE` to `(unset)`.
 
     3. **Determine the target** = the highest version in the changelog now in effect (the canonical one if it was fresher, else baked-in). If current ≥ target: report "already up to date (vN)" — say whether the check reached the canonical source or fell back — and stop.
 
@@ -371,12 +376,21 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
 
     - **Auto-fill new notes:** Settings → Templater → enable "Trigger Templater on new file creation", then add a Folder Template mapping `GTD/Items` → `Templates/GTD Item.md`. Every note created in `GTD/Items/` then gets the schema frontmatter automatically.
 
+    ### v3 → v4 — `/gtd-update` survives the repo moving
+
+    The self-check couldn't cope with the canonical repo changing address. Three holes: a successful refresh re-injected the vault's *old* `CANONICAL_SOURCE` and threw away the new one; an unreachable source only warned and fell back, forever; and neither path did anything unless the schema version had also changed. (llm-gtd moving out of a private monorepo into its own public repo is what surfaced this.)
+
+    This migration touches no vault data. Its only job is to replace the skill, because a change to the skill's *logic* can only travel on a version bump — the self-refresh triggers on a newer changelog entry, so a fix shipped without one would never reach an installed vault.
+
+    1. **`.claude/skills/gtd-update/SKILL.md`** — overwrite it with the current version of this skill: the whole thing, from its frontmatter through the changelog in effect. Set its `CANONICAL_SOURCE:` by the relocation rule in step 2 — if the vault's existing value is a URL that differs from the one this file declares, take this file's; if it's a local path, keep the vault's.
+    2. **Nothing else.** No frontmatter, board, template, clipper, or `CLAUDE.md` edits. Don't touch item notes and don't bump `updated` on anything — only the `Schema version:` marker moves.
+
 ## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **`.obsidian/snippets/gtd-kanban.css`** containing `.obk-card-property-label { display: none; }`, and enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, never overwrite). This is the only file written outside `GTD/`; it hides the property-name labels on kanban cards. Tell me to reload Obsidian (Ctrl/Cmd+R) once so it takes effect, and note that if Obsidian was open while you wrote `appearance.json` it may overwrite the edit on exit — I can just re-enable the snippet in Settings → Appearance → CSS snippets.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, and that `/gtd-update` brings the vault up to date after a schema change.
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v3): board, template, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v4): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

@@ -50,7 +50,7 @@ about that, and they stop and ask rather than overwrite anything that already ex
 
 ## Schema versioning
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v3**). When the
+The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v4**). When the
 schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
 mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
 
