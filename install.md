@@ -315,14 +315,14 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
 
     ## Canonical source (latest-version self-check)
 
-    CANONICAL_SOURCE: (unset)
+    CANONICAL_SOURCE: https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/update.md
 
-    The always-latest copy of this skill and its changelog lives in the repo's `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. Two forms work:
+    The always-latest copy of this skill and its changelog lives in the [llm-gtd repo](https://github.com/cypiswhywhy/llm-gtd)'s `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. It ships pointing at the public raw URL above, so the self-check works with no setup. Two forms work:
 
-    - **A public raw URL** — preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. E.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
-    - **A local file path** to a clone's copy — e.g. `~/devel/scriptchemy/scripts/obsidian-llm-gtd/update.md`. Use this when the repo is private, when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
+    - **A public raw URL** — the default, and preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
+    - **A local file path** to a clone's copy — e.g. `~/devel/llm-gtd/update.md`. Switch to this when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
 
-    Set it once (step 2) and future runs check it automatically.
+    Change it whenever you like — future runs check whatever it points at.
 
     ## Steps
 

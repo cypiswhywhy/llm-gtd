@@ -25,7 +25,7 @@ The vault's current schema version is the integer after `Schema version:` in the
 2. **The migration logic and the full changelog are the `gtd-update` skill printed at the end of this prompt.** Read it and follow it against this vault: plan every step for versions `current+1 … target`, present the plan grouped by version (naming the exact files and notes each step touches), and wait for my confirmation before writing.
 3. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
 4. **Bump the marker** in `CLAUDE.md` to the target version (add the `Schema version:` line if it was absent).
-5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** ask me where the canonical `update.md` lives and write it into the skill's `CANONICAL_SOURCE:` line — preferably the public raw URL of the repo's `update.md` (e.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`), or a local path to my clone's copy if the repo is private or I want unpushed migrations to count. Leave it `(unset)` only if I don't know — then the skill asks on its first run. This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
+5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** the skill's `CANONICAL_SOURCE:` line already ships pointing at the repo's public raw `update.md` — keep that value as-is unless I tell you otherwise (I'd want a local path like `~/devel/llm-gtd/update.md` only if I'm offline or want unpushed migrations to count). This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
 6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
 7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below (create it if missing).
 
@@ -48,14 +48,14 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
 
     ## Canonical source (latest-version self-check)
 
-    CANONICAL_SOURCE: (unset)
+    CANONICAL_SOURCE: https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/update.md
 
-    The always-latest copy of this skill and its changelog lives in the repo's `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. Two forms work:
+    The always-latest copy of this skill and its changelog lives in the [llm-gtd repo](https://github.com/cypiswhywhy/llm-gtd)'s `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. It ships pointing at the public raw URL above, so the self-check works with no setup. Two forms work:
 
-    - **A public raw URL** — preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. E.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
-    - **A local file path** to a clone's copy — e.g. `~/devel/scriptchemy/scripts/obsidian-llm-gtd/update.md`. Use this when the repo is private, when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
+    - **A public raw URL** — the default, and preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
+    - **A local file path** to a clone's copy — e.g. `~/devel/llm-gtd/update.md`. Switch to this when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
 
-    Set it once (step 2) and future runs check it automatically.
+    Change it whenever you like — future runs check whatever it points at.
 
     ## Steps
 
