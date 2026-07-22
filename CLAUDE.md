@@ -5,10 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this repo is
 
 There is no code, no build, no test suite, no dependencies. The repo is **three prose files at
-the root that are really one artifact in three renderings** — a prompt that a user pastes into
-Claude Code at the root of their Obsidian vault, which then writes the whole GTD system (schema,
-board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills)
-into that vault. See `README.md` for the user-facing pitch.
+the root that are really one artifact in three renderings** (plus one standalone extra) — a prompt
+that a user pastes into Claude Code at the root of their Obsidian vault, which then writes the whole
+GTD system (schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`,
+`/gtd-update` skills) into that vault. See `README.md` for the user-facing pitch.
 
 The work here is editing prompt text so that it stays internally consistent across all three files.
 
@@ -16,11 +16,12 @@ The work here is editing prompt text so that it stays internally consistent acro
 |---|---|
 | `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 21 → 383). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 "Also create". |
 | `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8. |
+| `import-notion.md` | **Outside the three-way sync.** Standalone prompt for bulk-loading a Notion / CSV export into an installed vault, and the *only* copy of the `/gtd-import` skill (added in v5). `install.md` §9 and the `v4 → v5` changelog entry **fetch** it rather than embedding it — so editing it needs no mirroring, but pushing it is a live deploy just like `update.md`. The changelog resolves its URL relative to `CANONICAL_SOURCE` (same directory, filename `import-notion.md`), so a repo move carries it along for free. |
 | `install.html` | Standalone single-page version. The entire installer prompt is a **JSON string** inside `<script type="application/json" id="prompt-data">`, injected into `#promptcode` at runtime. Not byte-identical to `install.md`: its tail folds the manual-setup steps into a final "One thing this prompt can't do for you" paragraph that `install.md` keeps as its own section. |
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 3**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 5**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -62,7 +63,7 @@ then re-validates, aborting otherwise.
   `clipper/`, and `.claude/skills/`. The **one** deliberate exception (since v3) is
   `.obsidian/snippets/gtd-kanban.css` (`.obk-card-property-label { display: none; }`), enabled by
   read-modify-writing `"gtd-kanban"` into `enabledCssSnippets` in `.obsidian/appearance.json` —
-  preserving every other key. Only `/gtd-update` and fresh installs may touch it; the generated
+  preserving every other key. (v5's `GTD/Attachments/` is *not* an exception — it's inside `GTD/`.) Only `/gtd-update` and fresh installs may touch it; the generated
   `CLAUDE.md` rule 6 still forbids `.obsidian/` writes during item operations.
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
   or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.

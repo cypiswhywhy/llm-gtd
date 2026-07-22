@@ -118,6 +118,18 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     1. **`.claude/skills/gtd-update/SKILL.md`** — overwrite it with the current version of this skill: the whole thing, from its frontmatter through the changelog in effect. Set its `CANONICAL_SOURCE:` by the relocation rule in step 2 — if the vault's existing value is a URL that differs from the one this file declares, take this file's; if it's a local path, keep the vault's.
     2. **Nothing else.** No frontmatter, board, template, clipper, or `CLAUDE.md` edits. Don't touch item notes and don't bump `updated` on anything — only the `Schema version:` marker moves.
 
+    ### v4 → v5 — `/gtd-import`, for moving an existing system into the vault
+
+    The item schema doesn't change. v5 adds a fourth skill, `/gtd-import`, which bulk-loads an existing task system — a Notion "Markdown & CSV" export, or a plain CSV — into `GTD/Items/`. It surveys the export, proposes a source-status → GTD-status map, a tag map folded onto the vault's existing vocabulary, and a field map, and writes only after the human confirms. Alongside it come the `GTD/Attachments/` folder (created on demand, for files an import brings with it) and the `[import]` log op.
+
+    The skill is **fetched, not embedded**: it's long, it matters once per vault, and copying it into every mirror of this changelog would bloat every install for no one's benefit. Its canonical home is the repo's `import-notion.md`, beside `update.md`.
+
+    1. **`.claude/skills/gtd-import/SKILL.md`** — create it from the `gtd-import` skill printed in the repo's `import-notion.md`. Resolve that file's location relative to `CANONICAL_SOURCE` — same directory, filename `import-notion.md` (so `.../main/update.md` → `.../main/import-notion.md`) — and write the skill body verbatim and unindented, from its frontmatter to the end. If the fetch fails, **do not block the migration**: apply everything else, then report that `/gtd-import` couldn't be installed and that pasting the repo's `import-notion.md` prompt by hand installs it.
+    2. **`GTD/Log.md`** — add `[import]` to the `Ops:` line in the header.
+    3. **`CLAUDE.md`** — add `GTD/Attachments/  # files an import brought with it — created on demand by /gtd-import` to the Layout block, and add an **import** bullet to Operations: "**import** (`/gtd-import`) — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/`: survey the export, propose a status/tag/field map, then write. A capture operation — the thinking happens afterwards at triage."
+    4. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line noting that `/gtd-import` brings a Notion export or CSV in.
+    5. **No item notes are touched**, no `updated` dates move, and `GTD/Attachments/` is not created until an import actually needs it.
+
 ---
 
 Before applying anything, confirm the vault's current version and the target, then show me the plan.

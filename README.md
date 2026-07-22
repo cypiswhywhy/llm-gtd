@@ -16,6 +16,7 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 |---|---|
 | [`install.md`](install.md) | The installer prompt. Sets up a fresh vault — schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills. Safe on vaults that already have notes. |
 | [`update.md`](update.md) | The migration prompt. Brings an already-installed vault up to the current schema version, non-destructively. Also the canonical home of the migration changelog. |
+| [`import-notion.md`](import-notion.md) | The import prompt. Bulk-loads an existing system — a Notion **Markdown & CSV** export, or a plain CSV — onto the board. Also the canonical home of the `/gtd-import` skill. |
 | [`install.html`](install.html) | A polished single-page version of `install.md` — pitch, setup steps, and a copy-button prompt block. Open it in a browser, or paste it into an Artifact for a shareable link. |
 
 ## Getting started
@@ -31,6 +32,14 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 Day to day: `/gtd-triage` clears the inbox, `/gtd-review` is the weekly lint pass,
 `/gtd-update` pulls in schema changes.
 
+## Coming from Notion
+
+Export your workspace as **Markdown & CSV** (all rows, everything), unzip every part into one
+directory *outside* the vault, then paste in the prompt from [`import-notion.md`](import-notion.md)
+— or run `/gtd-import` if the vault is already on schema v5. It surveys the export, proposes how
+your Notion statuses and tags map onto the six GTD columns, and writes only once you confirm.
+Long-finished items go straight to `GTD/Archive/` so the board opens clean.
+
 ## What it creates in your vault
 
 ```
@@ -38,10 +47,11 @@ CLAUDE.md               # the schema — the contract between you and the agent
 GTD/Board.base          # kanban board + Inbox / Stale / All items views
 GTD/Items/              # one note per item — the only place items live
 GTD/Archive/            # old done items
+GTD/Attachments/        # files an import brought with it (on demand)
 GTD/Log.md              # append-only activity log
 Templates/GTD Item.md   # Templater template for new items
 clipper/                # Obsidian Web Clipper template
-.claude/skills/         # gtd-triage, gtd-review, gtd-update
+.claude/skills/         # gtd-triage, gtd-review, gtd-update, gtd-import
 .obsidian/snippets/gtd-kanban.css   # the one file written outside GTD/
 ```
 
@@ -50,7 +60,7 @@ about that, and they stop and ask rather than overwrite anything that already ex
 
 ## Schema versioning
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v4**). When the
+The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v5**). When the
 schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
 mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
 
