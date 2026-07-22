@@ -1,0 +1,323 @@
+<title>LLM-GTD — a self-filing inbox</title>
+<style>
+:root{
+  --paper:#e8ece9;
+  --card:#f5f7f4;
+  --ink:#1e2a2c;
+  --ink-soft:#4b5b58;
+  --rule:#c3ccc3;
+  --stamp:#a63b30;
+  --stamp-soft:#a63b3018;
+  --tag:#5c7570;
+  --tag-bg:#5c757018;
+  --focus:#8a6d1f;
+  --focus-bg:#8a6d1f18;
+  --wait:#5c6f8a;
+  --wait-bg:#5c6f8a18;
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --serif: "Iowan Old Style","Palatino Linotype", Georgia, serif;
+  --sans: -apple-system, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+:root[data-theme="dark"]{
+  --paper:#14181a;
+  --card:#1b2123;
+  --ink:#e7ece9;
+  --ink-soft:#a8b6b1;
+  --rule:#333d3a;
+  --stamp:#e2685c;
+  --stamp-soft:#e2685c22;
+  --tag:#8fb0a9;
+  --tag-bg:#8fb0a922;
+  --focus:#d9b04a;
+  --focus-bg:#d9b04a22;
+  --wait:#8fa4c8;
+  --wait-bg:#8fa4c822;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#14181a;
+    --card:#1b2123;
+    --ink:#e7ece9;
+    --ink-soft:#a8b6b1;
+    --rule:#333d3a;
+    --stamp:#e2685c;
+    --stamp-soft:#e2685c22;
+    --tag:#8fb0a9;
+    --tag-bg:#8fb0a922;
+    --focus:#d9b04a;
+    --focus-bg:#d9b04a22;
+    --wait:#8fa4c8;
+    --wait-bg:#8fa4c822;
+  }
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  line-height:1.55;
+}
+.wrap{
+  max-width:760px;
+  margin:0 auto;
+  padding:4.5rem 1.5rem 6rem;
+}
+header{
+  margin-bottom:3rem;
+}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:0.72rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--stamp);
+  display:inline-flex;
+  align-items:center;
+  gap:0.5rem;
+  border:1px solid var(--stamp);
+  padding:0.25rem 0.6rem;
+  border-radius:2px;
+  transform:rotate(-1deg);
+}
+h1{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:2.6rem;
+  margin:0.9rem 0 0.6rem;
+  text-wrap:balance;
+  letter-spacing:-0.01em;
+}
+.pitch{
+  font-size:1.15rem;
+  color:var(--ink-soft);
+  max-width:56ch;
+  text-wrap:pretty;
+}
+h2{
+  font-family:var(--serif);
+  font-size:1.4rem;
+  font-weight:600;
+  margin:0 0 0.9rem;
+}
+section{
+  margin-bottom:3rem;
+}
+p{
+  max-width:62ch;
+}
+.credit{
+  font-size:0.9rem;
+  color:var(--ink-soft);
+}
+.credit a{color:var(--stamp);}
+
+.columns{
+  display:flex;
+  gap:0.5rem;
+  flex-wrap:wrap;
+  list-style:none;
+  padding:0;
+  margin:0 0 1rem;
+}
+.columns li{
+  font-family:var(--mono);
+  font-size:0.78rem;
+  padding:0.3rem 0.65rem;
+  border-radius:3px;
+  border:1px solid var(--rule);
+  color:var(--ink-soft);
+  white-space:nowrap;
+}
+.columns li.inbox{border-color:var(--stamp);color:var(--stamp);background:var(--stamp-soft);}
+.columns li.focus{border-color:var(--focus);color:var(--focus);background:var(--focus-bg);}
+.columns li.waiting{border-color:var(--wait);color:var(--wait);background:var(--wait-bg);}
+
+.ops{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+  background:var(--rule);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  overflow:hidden;
+}
+.ops div{
+  background:var(--card);
+  padding:1.1rem 1.3rem;
+}
+.ops h3{
+  font-family:var(--mono);
+  font-size:0.85rem;
+  margin:0 0 0.4rem;
+  color:var(--stamp);
+}
+.ops p{margin:0;font-size:0.92rem;color:var(--ink-soft);}
+@media (max-width:560px){ .ops{grid-template-columns:1fr;} }
+
+ol.steps{
+  padding-left:0;
+  list-style:none;
+  counter-reset:step;
+  display:flex;
+  flex-direction:column;
+  gap:0.9rem;
+}
+ol.steps li{
+  counter-increment:step;
+  position:relative;
+  padding-left:2.4rem;
+  font-size:0.98rem;
+}
+ol.steps li::before{
+  content:counter(step);
+  position:absolute;
+  left:0; top:-0.1rem;
+  font-family:var(--mono);
+  font-size:0.78rem;
+  width:1.6rem; height:1.6rem;
+  border:1px solid var(--rule);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft);
+}
+.plugins{
+  font-family:var(--mono);
+  font-size:0.85rem;
+  color:var(--tag);
+  background:var(--tag-bg);
+  padding:0.15rem 0.4rem;
+  border-radius:3px;
+}
+
+.promptbox{
+  position:relative;
+  background:var(--card);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  overflow:hidden;
+}
+.promptbox .bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0.6rem 1rem;
+  border-bottom:1px solid var(--rule);
+  font-family:var(--mono);
+  font-size:0.78rem;
+  color:var(--ink-soft);
+}
+.copybtn{
+  font-family:var(--mono);
+  font-size:0.78rem;
+  color:var(--ink);
+  background:transparent;
+  border:1px solid var(--rule);
+  border-radius:4px;
+  padding:0.3rem 0.7rem;
+  cursor:pointer;
+}
+.copybtn:hover{border-color:var(--stamp);color:var(--stamp);}
+.copybtn:focus-visible{outline:2px solid var(--stamp);outline-offset:2px;}
+.copybtn.copied{border-color:var(--stamp);color:var(--stamp);}
+pre{
+  margin:0;
+  padding:1.1rem 1.2rem;
+  max-height:420px;
+  overflow:auto;
+  font-family:var(--mono);
+  font-size:0.78rem;
+  line-height:1.6;
+  white-space:pre-wrap;
+  word-break:break-word;
+  color:var(--ink-soft);
+}
+code{font-family:var(--mono);}
+
+footer{
+  border-top:1px solid var(--rule);
+  padding-top:1.5rem;
+  font-size:0.85rem;
+  color:var(--ink-soft);
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">● inbox / next / focus / waiting / done</span>
+  <h1>LLM-GTD</h1>
+  <p class="pitch">A Getting Things Done board where you capture and decide, and Claude does the filing — every item is a plain markdown note, the board just renders it.</p>
+</header>
+
+<section>
+  <h2>The idea</h2>
+  <p>Karpathy's <a class="credit" href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" target="_blank" rel="noopener">llm-wiki</a> pattern splits knowledge work into three layers — raw sources, an LLM-maintained wiki, and a schema that governs it — with two operations on top: <em>ingest</em> new material, <em>lint</em> the whole thing for rot. Applied to a task inbox instead of a wiki, ingest becomes triage and lint becomes review. The whole system is six plain files: no server, no database, no Notion API — an Obsidian vault, a schema doc, and two Claude Code skills.</p>
+  <ul class="columns">
+    <li class="inbox">inbox</li>
+    <li class="focus">focus</li>
+    <li>next</li>
+    <li>someday</li>
+    <li class="waiting">waiting</li>
+    <li>done</li>
+  </ul>
+  <p>Capture from your phone or a web clipper without thinking about where it goes. Two routines keep the board honest:</p>
+  <div class="ops">
+    <div>
+      <h3>/gtd-triage</h3>
+      <p>Empties the inbox — summarizes clipped links, reuses your existing tags, proposes a column for each item, waits for your yes.</p>
+    </div>
+    <div>
+      <h3>/gtd-review</h3>
+      <p>The weekly lint pass — flags what's gone stale, archives old done items, resurfaces someday.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Try it yourself</h2>
+  <ol class="steps">
+    <li>Install <a class="credit" href="https://obsidian.md" target="_blank" rel="noopener">Obsidian</a>, make a new empty vault.</li>
+    <li>Settings → Community plugins → enable, then install: <span class="plugins">Dataview</span> <span class="plugins">Templater</span> <span class="plugins">Kanban</span> <span class="plugins">kanban-bases-view</span> <span class="plugins">Tasks</span> <span class="plugins">Icon Folder</span>. Enable all six.</li>
+    <li>Settings → Templater → turn on <em>Trigger Templater on new file creation</em> and add a Folder Template: <code>GTD/Items</code> → <code>Templates/GTD Item.md</code>, so hand-made notes auto-fill their frontmatter. (Card styling is handled automatically — the prompt writes and enables a small CSS snippet; reload Obsidian once if labels still show.)</li>
+    <li>Install <a class="credit" href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>, open a terminal at the vault's root folder.</li>
+    <li>Paste the prompt below into Claude Code and let it write the schema, template, board, and skills.</li>
+    <li>Open <code>GTD/Board.base</code> — that's your kanban. Capture a thought, then run <code>/gtd-triage</code> whenever the inbox looks full.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>The bootstrap prompt</h2>
+  <p>Self-contained — it embeds the full schema, so Claude Code can write every file from scratch, no repo access needed. Works on a fresh vault or an existing one: it's all namespaced under <code>GTD/</code>, and the prompt merges into rather than overwrites a vault that already has content.</p>
+  <div class="promptbox">
+    <div class="bar">
+      <span>install.md</span>
+      <button class="copybtn" id="copybtn">Copy</button>
+    </div>
+    <pre id="promptcode">Loading…</pre>
+  </div>
+</section>
+
+<footer>
+  Built jointly by a human and Claude, following the llm-wiki idea. Steal freely — it's a handful of text files and a Claude Code prompt.<br>
+  Already running LLM-GTD and want to pick up a schema change? Don't re-run this — use <code>update.md</code>, which migrates an existing vault in place, or the installed <code>/gtd-update</code> skill.
+</footer>
+
+</div>
+
+<script type="application/json" id="prompt-data">"Set up a GTD (Getting Things Done) system in this Obsidian vault, following the \"llm-wiki\" idea (https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): I capture and decide, you do the bookkeeping. Create the following files exactly as specified \u2014 don't improvise on the schema.\n\n## Before you touch anything \u2014 existing-vault safety\n\nThis vault may already contain notes. **Never overwrite or delete existing content.** First check what's already there and adapt:\n\n- **`CLAUDE.md` at the root** \u2014 if it already exists, do NOT replace it. Append the schema below under a new `# LLM-GTD \u2014 vault schema` heading (or a clearly separated section), preserving everything already in the file.\n- **`README.md` at the root** \u2014 if it already exists, do NOT replace it. Append the GTD usage notes (step 8) under a new `## LLM-GTD` heading instead.\n- **`GTD/`, `Templates/GTD Item.md`, `clipper/gtd-clipper-template.json`, `.claude/skills/gtd-triage/`, `.claude/skills/gtd-review/`** \u2014 if any of these already exist, STOP and report the collision instead of overwriting. Ask me how to proceed (rename, merge, or skip). Only create the ones that are absent.\n- **`Templates/`** \u2014 this folder may already exist and hold other templates; add `GTD Item.md` alongside them, don't disturb the rest.\n- Everything the system creates lives under `GTD/` (plus the two skills and `clipper/`). Do not read, move, retag, or modify any pre-existing note outside `GTD/` at any point.\n\nReport which of the files below already existed and how you handled each before writing anything.\n\n## 1. `CLAUDE.md` at the vault root (append if the file already exists \u2014 see safety note above)\n\n    # LLM-GTD \u2014 vault schema\n\n    This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema \u2014 read it before touching anything.\n\n    **Schema version: 3.** Version marker for migrations \u2014 the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.\n\n    ## Layout\n\n    ```\n    GTD/Board.base    # kanban board (Bases + kanban-bases-view plugin) + Inbox/Stale/All views\n    GTD/Items/        # one markdown note per GTD item \u2014 the ONLY place items live\n    GTD/Archive/      # old done items, moved here by review\n    GTD/Log.md        # append-only activity log\n    Templates/GTD Item.md   # Templater template for new items\n    clipper/          # Obsidian Web Clipper template\n    .obsidian/snippets/gtd-kanban.css   # the ONE file written outside GTD/ — hides card property labels\n    ```\n\n    ## Item schema\n\n    Every note in `GTD/Items/` and `GTD/Archive/` has this frontmatter \u2014 it is the single source of truth (the board just renders it):\n\n    ```yaml\n    ---\n    status: inbox   # inbox | focus | next | someday | waiting | done\n    tags: []        # lowercase, kebab-case; REUSE existing tags before inventing new ones\n    created: YYYY-MM-DD\n    updated: YYYY-MM-DD   # bump on EVERY meaningful change\n    source:         # URL for web clips; empty otherwise\n    ---\n    ```\n\n    `status` is the single source of truth and the ONLY completion signal \u2014 an item is done when `status: done`, nothing else. There is deliberately no separate `done` boolean: the kanban plugin has no per-card checkbox that moves a card between columns, so a second field would just drift out of sync with `status`.\n\n    Status vocabulary (kanban columns, in order):\n\n    | status | meaning |\n    |---|---|\n    | `inbox` | unprocessed capture \u2014 thoughts, clips, notes |\n    | `focus` | being worked on right now (keep \u2264 3\u20135 items) |\n    | `next` | queued for when Focus frees up |\n    | `someday` | worth keeping, no timeline |\n    | `waiting` | blocked on another party |\n    | `done` | finished or cancelled |\n\n    Note title = file name, short and action-oriented (\"Buy trail running shoes\", not \"shoes\"). Body holds content: clip summaries, links, checklists, research.\n\n    To complete an item on the board, **drag its card to the `done` column** \u2014 that sets `status: done`. (Dragging between any two columns is how the board rewrites `status`.)\n\n    ## Operations\n\n    - **capture** \u2014 create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.\n    - **triage** (`/gtd-triage`) \u2014 process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.\n    - **review** (`/gtd-review`) \u2014 the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.\n    - **query** \u2014 answer questions from item notes (\"what am I waiting for?\", \"what did I research about shoes?\"). Read-only.\n\n    ## Rules for the agent\n\n    1. **Never delete** an item note. Cancelled \u2192 `status: done` with a `Cancelled: <reason>` line in the body. Old done items \u2192 move to `GTD/Archive/`.\n    2. **Propose, then apply.** Triage and review present a batch proposal and wait for the human's confirmation before writing (the human decides; you file).\n    3. **Bump `updated`** (YYYY-MM-DD) on every note you modify.\n    4. **Log every operation** in `GTD/Log.md`: append-only, newest at the bottom, format `YYYY-MM-DD HH:MM [op] message`. Never rewrite existing lines.\n    5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.\n    6. **Don't touch** `.obsidian/` config or `GTD/Board.base` during item operations. The sole exception to writing outside `GTD/` is the `gtd-kanban` CSS snippet — and even that is only created/enabled by `/gtd-update`, never during capture/triage/review.\n    7. Frontmatter must always match the schema above \u2014 no extra keys, no renamed keys.\n\n## 2. `Templates/GTD Item.md` (Templater template \u2014 the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)\n\n    ---\n    status: inbox\n    tags: []\n    created: <% tp.date.now(\"YYYY-MM-DD\") %>\n    updated: <% tp.date.now(\"YYYY-MM-DD\") %>\n    source:\n    ---\n\n## 3. `GTD/Board.base` (Bases file \u2014 needs the `kanban-bases-view` plugin)\n\n    filters:\n      and:\n        - file.inFolder(\"GTD/Items\")\n    properties:\n      note.status:\n        displayName: Status\n      note.tags:\n        displayName: Tags\n      note.created:\n        displayName: Created\n      note.updated:\n        displayName: Updated\n      note.source:\n        displayName: Source\n    views:\n      - type: kanban-view\n        name: Board\n        order:\n          - tags\n        groupByProperty: note.status\n        columnOrders:\n          note.status:\n            - inbox\n            - focus\n            - next\n            - someday\n            - waiting\n            - done\n        quickAddFolder: GTD/Items\n        cardOrders:\n          note.status: {}\n        columnColors:\n          note.status: {}\n      - type: table\n        name: Inbox\n        filters:\n          and:\n            - status == \"inbox\"\n        order:\n          - file.name\n          - tags\n          - created\n          - source\n        sort:\n          - property: created\n            direction: ASC\n      - type: table\n        name: Stale\n        filters:\n          or:\n            - and:\n                - status == \"inbox\"\n                - updated < now() - \"3 days\"\n            - and:\n                - status == \"focus\"\n                - updated < now() - \"7 days\"\n            - and:\n                - status == \"waiting\"\n                - updated < now() - \"14 days\"\n            - and:\n                - status == \"next\"\n                - updated < now() - \"30 days\"\n        order:\n          - file.name\n          - status\n          - tags\n          - updated\n        sort:\n          - property: updated\n            direction: ASC\n      - type: table\n        name: All items\n        order:\n          - file.name\n          - status\n          - tags\n          - created\n          - updated\n        sort:\n          - property: updated\n            direction: DESC\n\nThe **kanban view's** `order:` lists only `tags` on purpose: the card already shows the note name as its title, so listing `file.name` there would print the name a second time. The **table** views keep `file.name` because a table needs it as a column.\n\n## 4. `GTD/Log.md`\n\n    # GTD Log\n\n    Append-only activity log. Newest entries at the bottom. One line per action, format:\n\n    `YYYY-MM-DD HH:MM [op] message`\n\n    Ops: `[capture]` `[triage]` `[review]` `[archive]` `[migrate]`\n\n    ---\n\n## 5. `clipper/gtd-clipper-template.json` (import into the Obsidian Web Clipper browser extension)\n\n    {\n      \"schemaVersion\": \"0.1.0\",\n      \"name\": \"GTD Inbox\",\n      \"behavior\": \"create\",\n      \"noteNameFormat\": \"{{title}}\",\n      \"path\": \"GTD/Items\",\n      \"context\": \"\",\n      \"noteContentFormat\": \"{{content}}\",\n      \"properties\": [\n        { \"name\": \"status\", \"value\": \"inbox\", \"type\": \"text\" },\n        { \"name\": \"tags\", \"value\": \"\", \"type\": \"multitext\" },\n        { \"name\": \"created\", \"value\": \"{{date|date:\\\"YYYY-MM-DD\\\"}}\", \"type\": \"date\" },\n        { \"name\": \"updated\", \"value\": \"{{date|date:\\\"YYYY-MM-DD\\\"}}\", \"type\": \"date\" },\n        { \"name\": \"source\", \"value\": \"{{url}}\", \"type\": \"text\" }\n      ],\n      \"triggers\": []\n    }\n\n## 6. `.claude/skills/gtd-triage/SKILL.md`\n\n    ---\n    name: gtd-triage\n    description: Process the GTD inbox \u2014 enrich, tag, and route items to kanban columns. Use when the user wants to clear or triage their inbox, or asks \"what's in my inbox\".\n    ---\n\n    # GTD inbox triage\n\n    Process every item with `status: inbox` in `GTD/Items/`. Follow the schema and rules in the vault's `CLAUDE.md`.\n\n    ## Steps\n\n    1. **Collect.** Read frontmatter of all notes in `GTD/Items/`; select those with `status: inbox`, oldest `created` first. Some hand-made notes may lack `created` or `source` — for ordering, treat a missing `created` as the note's file-creation date. If none: say the inbox is empty and stop.\n\n    2. **Build the tag vocabulary.** Gather all `tags` used across `GTD/Items/` and `GTD/Archive/` so suggestions reuse existing tags.\n\n    3. **Enrich each item:**\n       - If `source` has a URL and the body is empty or just a raw clip: fetch the URL and write a 2\u20134 sentence summary into the body (keep any existing user text above it, add summary under a `## Summary` heading). If the fetch fails, note that and move on \u2014 never block the batch.\n       - Suggest tags from the vocabulary (new tag only if nothing fits).\n       - Propose a destination status using GTD clarification rules:\n         - actionable and quick (~2 min) \u2192 suggest the user just does it now; otherwise `next`\n         - actionable but the user is actively on it \u2192 `focus` (warn if Focus would exceed 5 items)\n         - blocked on someone/something else \u2192 `waiting`\n         - \"maybe someday\", no commitment \u2192 `someday`\n         - pure reference with no action (e.g. an interesting read already skimmed) \u2192 propose `done` after distilling the useful part into the body, or keeping it as `someday` reading\n       - If the title isn't action-oriented, propose a rename (short verb phrase).\n\n    4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.\n\n    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. This heals hand-made notes that bypassed the template.\n\n    6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] \"<title>\" \u2192 <status> (tags: ...)`.\n\n    7. **Report.** Summarize what moved where, and mention anything the user should decide later.\n\n## 7. `.claude/skills/gtd-review/SKILL.md`\n\n    ---\n    name: gtd-review\n    description: GTD weekly review / lint pass \u2014 flag stale items, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or \"what's rotting\".\n    ---\n\n    # GTD review (lint pass)\n\n    A maintenance sweep over `GTD/Items/`, in the spirit of llm-wiki's lint operation. Follow the schema and rules in the vault's `CLAUDE.md`. Report first; apply only what the user confirms.\n\n    ## Checks\n\n    Read all notes in `GTD/Items/` and evaluate (thresholds by `updated`, relative to today):\n\n    1. **Inbox backlog** \u2014 items still `inbox` after 3 days \u2192 recommend running `/gtd-triage`.\n    2. **Stale focus** \u2014 `focus` untouched > 7 days \u2192 ask: still working on it? Suggest `next`, `waiting`, or `someday`.\n    3. **Stalled waiting** \u2014 `waiting` untouched > 14 days \u2192 suggest a follow-up action (ping the other party) or unblocking.\n    4. **Old next** \u2014 `next` untouched > 30 days \u2192 honesty check: promote to `focus` or demote to `someday`.\n    5. **Someday resurface** \u2014 pick up to 5 `someday` items (oldest `updated` first) and ask whether any should become `next` or be closed.\n    6. **Archive** \u2014 `status: done` with `updated` older than 30 days \u2192 move the file to `GTD/Archive/` (plain `mv`, keep the name).\n    7. **Hygiene** \u2014 items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.\n    8. **Knowledge distillation** \u2014 for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.\n\n    ## Output\n\n    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks). Focus/next/waiting counts at the top give the board's health at a glance.\n    2. Ask the user to confirm all / pick exceptions.\n    3. Apply confirmed changes: frontmatter edits, `mv` to Archive, bump `updated` on every touched note.\n    4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.\n    5. Close with the 1\u20133 things that most need the user's attention this week.\n\n## 8. `.claude/skills/gtd-update/SKILL.md`\n\n    ---\n    name: gtd-update\n    description: Bring this LLM-GTD vault up to the current schema version \u2014 apply any pending schema migrations to frontmatter, the board, template, clipper, and skills. Use when the schema changed, after pulling a new version of the scripts, or when something references a `done`/legacy field that no longer fits the schema.\n    ---\n\n    # GTD schema migration\n\n    Reconcile this vault to the latest LLM-GTD schema version. Follow the propose-then-apply rule in `CLAUDE.md` and never touch notes outside `GTD/`.\n\n    ## How versioning works\n\n    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md` (absent \u2192 **version 1**, the original release before versioning). The migrations this skill can apply are in the changelog at the bottom \u2014 but this skill is a *snapshot* from when it was installed, so newer migrations may exist in the repo. Before planning, it checks a canonical source for a fresher changelog and self-refreshes if there is one, so `/gtd-update` never silently misses a newer version.\n\n    ## Canonical source (latest-version self-check)\n\n    CANONICAL_SOURCE: (unset)\n\n    The always-latest copy of this skill and its changelog lives in the repo's `update.md`. `CANONICAL_SOURCE` says where to find it \u2014 that's how `/gtd-update` learns about migrations authored *after* this skill was installed. Two forms work:\n\n    - **A public raw URL** \u2014 preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. E.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.\n    - **A local file path** to a clone's copy \u2014 e.g. `~/devel/scriptchemy/scripts/obsidian-llm-gtd/update.md`. Use this when the repo is private, when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.\n\n    Set it once (step 2) and future runs check it automatically.\n\n    ## Steps\n\n    1. **Read the vault version** from `CLAUDE.md` (`Schema version: N`; absent \u2192 1).\n\n    2. **Self-check for a newer changelog.**\n       - If `CANONICAL_SOURCE` is `(unset)`: ask me for it — the public raw URL of the repo's `update.md`, or a local path to my clone's copy (see above). If I give one, write it into the `CANONICAL_SOURCE:` line above so it persists for next time. If I decline, skip to step 3 using the baked-in changelog and warn that the latest-version check was skipped.\n       - If `CANONICAL_SOURCE` is set, read it — fetch it if it's a URL, read the file if it's a path:\n         - **Reachable, and its highest `### vX \u2192 vY` entry is newer than the top of my baked-in changelog** \u2192 I'm stale. Use *that file's* changelog (its steps, not mine) for planning and applying. After applying, overwrite this `SKILL.md` with the `gtd-update` skill embedded in that file, but **keep my current `CANONICAL_SOURCE` value** \u2014 re-inject it, don't revert it to `(unset)`.\n         - **Reachable but not newer** \u2192 I'm current; use my baked-in changelog.\n         - **Unreachable** (path moved, clone missing, URL 404/private, offline, fetch blocked) \u2192 warn, say which source failed, fall back to the baked-in changelog, and remind me I can run `update.md` manually.\n\n    3. **Determine the target** = the highest version in the changelog now in effect (the canonical one if it was fresher, else baked-in). If current \u2265 target: report \"already up to date (vN)\" \u2014 say whether the check reached the canonical source or fell back \u2014 and stop.\n\n    4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.\n    5. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.\n    6. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).\n    7. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX \u2192 vY: <summary>` line per version applied (add a count of notes touched when the batch is large).\n    8. **Report** what changed, the effective latest version, and whether the self-check reached the canonical source.\n\n    ## Changelog (oldest first; the canonical copy lives in the repo's `update.md`)\n\n    ### v1 \u2192 v2 \u2014 drop the redundant `done` field (status is the single source of truth)\n\n    The old schema carried a `done: false` boolean beside `status`. The kanban plugin can't bind a card checkbox to a column, so it never moved cards and only drifted out of sync. v2 removes it: an item is done when `status: done` (drag the card to the Done column).\n\n    1. **Item + archive notes** \u2014 in every note under `GTD/Items/` and `GTD/Archive/`, delete the `done:` frontmatter line. Change nothing else.\n    2. **`Templates/GTD Item.md`** \u2014 delete the `done: false` line.\n    3. **`GTD/Board.base`** \u2014 delete the `note.done` property block; in the kanban view's `order:` list delete the `- done` entry. KEEP the `- done` under `columnOrders` \u2014 that is the Done *column*, not the field.\n    4. **`clipper/gtd-clipper-template.json`** \u2014 delete the `{ \"name\": \"done\", ... }` object from `properties`.\n    5. **`.claude/skills/gtd-review/SKILL.md`** \u2014 delete the \"Done sync\" check, renumber the remaining checks, and remove \"sync done checkboxes\" from the `description`.\n    6. **`CLAUDE.md`** \u2014 delete the `done:` frontmatter line and its comment; add the \"single source of truth / drag to the Done column\" notes; remove \"sync `done`,\" from the review operation line.\n\n    ### v2 → v3 — cleaner kanban cards + auto-frontmatter for hand-made items\n\n    Two fixes. (1) The kanban card printed the note name twice — once as the card title, once as a `file.name` property — and prefixed every property with its label (`Tags: ...`). (2) Notes created by hand in `GTD/Items/` (not via the template or web clipper) were missing `created`/`source`.\n\n    Changes to apply:\n\n    1. **`GTD/Board.base`** — in the **kanban view's** `order:` list, delete the `- file.name` line (keep `- tags`). The card already shows the note name as its title, so `file.name` there rendered it a second time. Do NOT touch the table views' `order:` lists — those still need `file.name` as a column.\n    2. **`.claude/skills/gtd-triage/SKILL.md`** — add frontmatter backfill when processing the inbox: if an item is missing `created`, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. Hand-made notes then self-heal to the schema at triage time.\n    3. **`.obsidian/snippets/gtd-kanban.css`** — create it containing `.obk-card-property-label { display: none; }`, then enable it by adding `\"gtd-kanban\"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, don't overwrite). This hides the property-name labels so cards read `tag1 tag2` instead of `Tags: tag1 tag2` — the `kanban-bases-view` plugin always draws the label, so CSS is the only way. **This is the one place llm-gtd writes outside `GTD/`.** After applying, tell the user to reload Obsidian (Ctrl/Cmd+R or reopen the vault) for it to take effect, and warn that if Obsidian was running during the migration it may rewrite `appearance.json` on exit — in which case the snippet just needs enabling once in Settings → Appearance → CSS snippets.\n    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`; add `.obsidian/snippets/gtd-kanban.css` to the Layout as the one file written outside `GTD/`; and nuance the \"don't touch `.obsidian/`\" rule so it allows creating/enabling this snippet during `/gtd-update`.\n\n    Manual step to REPORT to the user (it lives in `.obsidian/` plugin config and can't be scripted reliably — tell the user, don't attempt it):\n\n    - **Auto-fill new notes:** Settings → Templater → enable \"Trigger Templater on new file creation\", then add a Folder Template mapping `GTD/Items` → `Templates/GTD Item.md`. Every note created in `GTD/Items/` then gets the schema frontmatter automatically.\n\n## 9. Also create\n\n- Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).\n- **`.obsidian/snippets/gtd-kanban.css`** containing `.obk-card-property-label { display: none; }`, and enable it by adding `\"gtd-kanban\"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, never overwrite). This is the only file written outside `GTD/`; it hides the property-name labels on kanban cards. Tell me to reload Obsidian (Ctrl/Cmd+R) once so it takes effect, and note that if Obsidian was open while you wrote `appearance.json` it may overwrite the edit on exit — I can just re-enable the snippet in Settings → Appearance → CSS snippets.\n- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, and that `/gtd-update` brings the vault up to date after a schema change.\n- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v3): board, template, schema, skills created.`\n\nBefore writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.\n\n---\n\n**One thing this prompt can't do for you:** in Obsidian, go to Settings \u2192 Community plugins \u2192 enable, then Browse and install: `Dataview`, `Templater`, `Obsidian Kanban`, `kanban-bases-view`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. Then in Settings → Templater turn on \"Trigger Templater on new file creation\" and add a Folder Template `GTD/Items` → `Templates/GTD Item.md`, so notes you create by hand auto-fill their frontmatter. (The board's card styling is set up automatically by the prompt — you may just need to reload Obsidian once.) Then run this prompt with Claude Code from the vault's root folder.\n"</script>
+<script>
+const promptText = JSON.parse(document.getElementById('prompt-data').textContent);
+document.getElementById('promptcode').textContent = promptText;
+const btn = document.getElementById('copybtn');
+btn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(promptText);
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  } catch (e) {
+    btn.textContent = 'Select & copy manually';
+  }
+});
+</script>
