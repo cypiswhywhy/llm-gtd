@@ -311,19 +311,37 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
 
     ## How versioning works
 
-    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md`. If that marker is absent, treat the vault as **version 1** (the original release, before versioning). The latest version this skill knows is the highest entry in the changelog below.
+    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md` (absent → **version 1**, the original release before versioning). The migrations this skill can apply are in the changelog at the bottom — but this skill is a *snapshot* from when it was installed, so newer migrations may exist in the repo. Before planning, it checks a canonical source for a fresher changelog and self-refreshes if there is one, so `/gtd-update` never silently misses a newer version.
+
+    ## Canonical source (latest-version self-check)
+
+    CANONICAL_SOURCE: (unset)
+
+    The always-latest copy of this skill and its changelog lives in the repo's `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. Two forms work:
+
+    - **A public raw URL** — preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. E.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
+    - **A local file path** to a clone's copy — e.g. `~/devel/scriptchemy/scripts/obsidian-llm-gtd/update.md`. Use this when the repo is private, when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
+
+    Set it once (step 2) and future runs check it automatically.
 
     ## Steps
 
-    1. **Read the current version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
-    2. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
-    3. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
-    4. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
-    5. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
-    6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
-    7. **Report** what changed and anything I should eyeball.
+    1. **Read the vault version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
 
-    If the repo's `update.md` advertises a version higher than the top of this changelog, this skill is stale — run `update.md` instead (it migrates the vault *and* refreshes this skill).
+    2. **Self-check for a newer changelog.**
+       - If `CANONICAL_SOURCE` is `(unset)`: ask me for it — the public raw URL of the repo's `update.md`, or a local path to my clone's copy (see above). If I give one, write it into the `CANONICAL_SOURCE:` line above so it persists for next time. If I decline, skip to step 3 using the baked-in changelog and warn that the latest-version check was skipped.
+       - If `CANONICAL_SOURCE` is set, read it — fetch it if it's a URL, read the file if it's a path:
+         - **Reachable, and its highest `### vX → vY` entry is newer than the top of my baked-in changelog** → I'm stale. Use *that file's* changelog (its steps, not mine) for planning and applying. After applying, overwrite this `SKILL.md` with the `gtd-update` skill embedded in that file, but **keep my current `CANONICAL_SOURCE` value** — re-inject it, don't revert it to `(unset)`.
+         - **Reachable but not newer** → I'm current; use my baked-in changelog.
+         - **Unreachable** (path moved, clone missing, URL 404/private, offline, fetch blocked) → warn, say which source failed, fall back to the baked-in changelog, and remind me I can run `update.md` manually.
+
+    3. **Determine the target** = the highest version in the changelog now in effect (the canonical one if it was fresher, else baked-in). If current ≥ target: report "already up to date (vN)" — say whether the check reached the canonical source or fell back — and stop.
+
+    4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
+    5. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
+    6. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
+    7. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
+    8. **Report** what changed, the effective latest version, and whether the self-check reached the canonical source.
 
     ## Changelog (oldest first; the canonical copy lives in the repo's `update.md`)
 

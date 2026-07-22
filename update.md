@@ -3,7 +3,7 @@
 A self-contained prompt for bringing a vault that **already has LLM-GTD installed** up to the current schema. Paste it into Claude Code at the vault's root. It detects the vault's schema version, applies only the migrations it's missing, refreshes the in-vault `/gtd-update` skill, and does all of it non-destructively — propose-then-apply, logged, nothing outside `GTD/` touched.
 
 - **Brand-new vault?** Use [`install.md`](install.md) instead — this prompt assumes an install is already present.
-- **Day to day**, the installed `/gtd-update` skill does the same job from inside the vault. This file is the canonical, always-latest copy of the changelog, and it also creates/repairs that skill (vaults installed before the skill existed won't have it).
+- **Day to day**, the installed `/gtd-update` skill does the same job from inside the vault. This file is the canonical, always-latest copy of the changelog. As of the current skill, `/gtd-update` points a `CANONICAL_SOURCE` at *this file* and checks it on every run, so once a vault has been through this prompt once it can detect newer versions on its own (and self-refresh) instead of going stale. Running this prompt also creates/repairs the skill for vaults installed before it existed.
 
 No plugins or manual steps are needed to update — the six community plugins from `install.md` are already enabled.
 
@@ -25,7 +25,7 @@ The vault's current schema version is the integer after `Schema version:` in the
 2. **The migration logic and the full changelog are the `gtd-update` skill printed at the end of this prompt.** Read it and follow it against this vault: plan every step for versions `current+1 … target`, present the plan grouped by version (naming the exact files and notes each step touches), and wait for my confirmation before writing.
 3. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
 4. **Bump the marker** in `CLAUDE.md` to the target version (add the `Schema version:` line if it was absent).
-5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time.
+5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** ask me where the canonical `update.md` lives and write it into the skill's `CANONICAL_SOURCE:` line — preferably the public raw URL of the repo's `update.md` (e.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`), or a local path to my clone's copy if the repo is private or I want unpushed migrations to count. Leave it `(unset)` only if I don't know — then the skill asks on its first run. This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
 6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
 7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below (create it if missing).
 
@@ -44,19 +44,37 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
 
     ## How versioning works
 
-    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md`. If that marker is absent, treat the vault as **version 1** (the original release, before versioning). The latest version this skill knows is the highest entry in the changelog below.
+    The vault's current version is the integer after `Schema version:` in the root `CLAUDE.md` (absent → **version 1**, the original release before versioning). The migrations this skill can apply are in the changelog at the bottom — but this skill is a *snapshot* from when it was installed, so newer migrations may exist in the repo. Before planning, it checks a canonical source for a fresher changelog and self-refreshes if there is one, so `/gtd-update` never silently misses a newer version.
+
+    ## Canonical source (latest-version self-check)
+
+    CANONICAL_SOURCE: (unset)
+
+    The always-latest copy of this skill and its changelog lives in the repo's `update.md`. `CANONICAL_SOURCE` says where to find it — that's how `/gtd-update` learns about migrations authored *after* this skill was installed. Two forms work:
+
+    - **A public raw URL** — preferred: it works on any machine, needs no clone, and sees changes the moment they're pushed. E.g. `https://raw.githubusercontent.com/<owner>/<repo>/main/update.md`. Use the `raw.` host; a `github.com/...` link serves an HTML page, not the file.
+    - **A local file path** to a clone's copy — e.g. `~/devel/scriptchemy/scripts/obsidian-llm-gtd/update.md`. Use this when the repo is private, when you're offline, or when you want the check to see migrations you've written but not yet pushed. Requires the clone to be present and pulled.
+
+    Set it once (step 2) and future runs check it automatically.
 
     ## Steps
 
-    1. **Read the current version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
-    2. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
-    3. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
-    4. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
-    5. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
-    6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
-    7. **Report** what changed and anything I should eyeball.
+    1. **Read the vault version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
 
-    If the repo's `update.md` advertises a version higher than the top of this changelog, this skill is stale — run `update.md` instead (it migrates the vault *and* refreshes this skill).
+    2. **Self-check for a newer changelog.**
+       - If `CANONICAL_SOURCE` is `(unset)`: ask me for it — the public raw URL of the repo's `update.md`, or a local path to my clone's copy (see above). If I give one, write it into the `CANONICAL_SOURCE:` line above so it persists for next time. If I decline, skip to step 3 using the baked-in changelog and warn that the latest-version check was skipped.
+       - If `CANONICAL_SOURCE` is set, read it — fetch it if it's a URL, read the file if it's a path:
+         - **Reachable, and its highest `### vX → vY` entry is newer than the top of my baked-in changelog** → I'm stale. Use *that file's* changelog (its steps, not mine) for planning and applying. After applying, overwrite this `SKILL.md` with the `gtd-update` skill embedded in that file, but **keep my current `CANONICAL_SOURCE` value** — re-inject it, don't revert it to `(unset)`.
+         - **Reachable but not newer** → I'm current; use my baked-in changelog.
+         - **Unreachable** (path moved, clone missing, URL 404/private, offline, fetch blocked) → warn, say which source failed, fall back to the baked-in changelog, and remind me I can run `update.md` manually.
+
+    3. **Determine the target** = the highest version in the changelog now in effect (the canonical one if it was fresher, else baked-in). If current ≥ target: report "already up to date (vN)" — say whether the check reached the canonical source or fell back — and stop.
+
+    4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
+    5. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
+    6. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
+    7. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
+    8. **Report** what changed, the effective latest version, and whether the self-check reached the canonical source.
 
     ## Changelog (oldest first; the canonical copy lives in the repo's `update.md`)
 
