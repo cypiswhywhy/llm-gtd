@@ -34,11 +34,19 @@ Day to day: `/gtd-triage` clears the inbox, `/gtd-review` is the weekly lint pas
 
 ## Coming from Notion
 
-Export your workspace as **Markdown & CSV** (all rows, everything), unzip every part into one
-directory *outside* the vault, then paste in the prompt from [`import-notion.md`](import-notion.md)
-— or run `/gtd-import` if the vault is already on schema v5. It surveys the export, proposes how
-your Notion statuses and tags map onto the six GTD columns, and writes only once you confirm.
-Long-finished items go straight to `GTD/Archive/` so the board opens clean.
+Export your workspace as **Markdown & CSV** (all rows, everything), then **drop the zip into a
+`.gtd-import/` folder at your vault's root** — no need to unzip. The leading dot keeps Obsidian
+from indexing it, so the export can sit inside the vault without polluting search or the board.
+Then run `/gtd-import` (schema v5+), or paste in the prompt from
+[`import-notion.md`](import-notion.md).
+
+You can skip even that: the import checks `.gtd-import/`, the vault root, `~/Downloads/`, and the
+vault's parent before it asks you for a path, so leaving the zip in Downloads usually works.
+
+It surveys the export, proposes how your Notion statuses and tags map onto the six GTD columns,
+and writes only once you confirm. Long-finished items go straight to `GTD/Archive/` so the board
+opens clean. If your vault is a git repo, `.gtd-import/` belongs in `.gitignore` — the import
+offers to add it.
 
 ## What it creates in your vault
 

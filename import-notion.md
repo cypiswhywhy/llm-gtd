@@ -23,12 +23,45 @@ In Notion: **⋯ → Export**, and choose:
 | Include databases | **All rows** (not just the current view) |
 | Create folders for subpages | **On** |
 
-You get a `.zip` (several `-Part-N.zip` files if the workspace is large). **Unzip all parts into one
-directory outside the vault** — if the export sits inside the vault, Obsidian indexes it and stray
-pages start showing up on the board. Export at the workspace level to get everything, or export a
-single database if you only want that one.
+You get a `.zip` — several `-Part-N.zip` files if the workspace is large. Export at the workspace
+level to get everything, or export a single database if you only want that one. A CSV-only export
+works too; you just get properties without page bodies.
 
-A CSV-only export works too; you just get properties without page bodies.
+## Where to put the export
+
+**Make a folder called `.gtd-import/` at the root of your vault and drop the zip (or zips) in.**
+That's it — you don't need to unzip anything.
+
+```
+your-vault/
+  .gtd-import/          ← drop Export-abc123.zip here
+  GTD/
+  CLAUDE.md
+```
+
+The leading dot is the whole trick: **Obsidian ignores dot-folders**, so an export can sit inside
+the vault without being indexed, without stray Notion pages appearing in search, and without
+anything landing on your board. And because Claude Code already runs at the vault root, the import
+finds it with no path to type.
+
+You don't *have* to use it. The import looks in these places, in order, before it asks you anything:
+
+1. `.gtd-import/` at the vault root — the documented spot
+2. the vault root itself — a stray `Export-*.zip`
+3. `~/Downloads/` — where your browser actually put it, and usually where it still is
+4. the vault's parent folder
+
+So in practice you can also just leave the zip in Downloads and say "import my Notion export".
+
+Two cautions:
+
+- **If your vault is a git repo**, add `.gtd-import/` to `.gitignore` before you start. A Notion
+  export runs to hundreds of megabytes. The import checks this and offers to add the line.
+- **Don't unzip into a normal folder inside the vault** (`Notion export/`, `Import/`). That one
+  Obsidian *does* index, and you get hundreds of untracked pages in your vault. Dot-folder or
+  outside the vault — nothing in between.
+
+Once the import finishes, `.gtd-import/` is yours to delete. Nothing references it afterwards.
 
 ## The prompt
 
@@ -36,9 +69,11 @@ Open a terminal at the vault's root, run Claude Code, and paste this in:
 
 ---
 
-Import an existing task system into this LLM-GTD Obsidian vault. The vault already has LLM-GTD installed (a `CLAUDE.md` schema, `GTD/` with a board and item notes, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills) — read that `CLAUDE.md` first and treat it as binding. My export is at the path I give you when you ask.
+Import an existing task system into this LLM-GTD Obsidian vault. The vault already has LLM-GTD installed (a `CLAUDE.md` schema, `GTD/` with a board and item notes, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills) — read that `CLAUDE.md` first and treat it as binding.
 
-Do not write anything until you have surveyed the export and I have confirmed your mapping. Never modify anything inside the export folder, never overwrite an existing note, and never write outside `GTD/`.
+**Find the export yourself before asking me where it is** — check `.gtd-import/` at the vault root, then the vault root, then `~/Downloads/`, then the vault's parent folder. Tell me what you found and which one you're using. Only ask for a path if none of those turn anything up.
+
+Do not write anything until you have surveyed the export and I have confirmed your mapping. Never modify anything inside the export folder, never overwrite an existing note, and never write outside `GTD/` (unzipping into the staging folder is the one exception, and only when you tell me first).
 
 ## What to do
 
@@ -66,21 +101,38 @@ Follow this against my export, then write it verbatim to `.claude/skills/gtd-imp
 
     - **The export is read-only.** Never write into, move, or delete anything inside it. When the import finishes, tell the user it's safe to delete — don't delete it.
     - **Never overwrite an existing item note.** Collisions get reported; the user decides.
-    - **Nothing outside `GTD/`.** Items go to `GTD/Items/` (or `GTD/Archive/`), attachments to `GTD/Attachments/`. Notion pages that aren't tasks — wiki pages, meeting notes, reference docs — are **out of scope**: list them at the end so the user can place them, but don't file them anywhere.
+    - **Nothing outside `GTD/`,** with exactly one exception: unzipping the export into the staging folder `.gtd-import/` (step 1). That folder is scratch space the user owns, not vault content, and you say so before creating it. Items go to `GTD/Items/` (or `GTD/Archive/`), attachments to `GTD/Attachments/`. Notion pages that aren't tasks — wiki pages, meeting notes, reference docs — are **out of scope**: list them at the end so the user can place them, but don't file them anywhere.
     - **Resumable.** Every imported item records its Notion page id in its body. A second run skips any id already present in the vault, so a partial import can be finished and never doubled.
 
-    ## Step 1 — Locate and identify the export
+    ## Step 1 — Find, stage, and identify the export
 
-    Ask for the path if the user hasn't given one, then work out its shape:
+    **Look before you ask.** You are running at the vault root, so search these, in order, and stop at the first that yields something:
+
+    1. **`.gtd-import/`** — the documented drop folder. This is where the user is told to put the export; a leading dot keeps Obsidian from indexing it.
+    2. **the vault root** — a stray `Export-*.zip`, or a folder whose name ends in a space plus 32 hex characters.
+    3. **`~/Downloads/`** — where the browser put it by default, and usually where it still is. Match `Export-*.zip`, `*Notion*`, and any folder ending in a 32-hex id.
+    4. **the vault's parent folder** — a sibling of the vault.
+
+    Say what you found and which candidate you're using. If several look plausible, list them with their sizes and dates and ask which. **Never scan the whole home directory or the whole disk** — those four locations, then ask.
+
+    If nothing turns up, don't just ask for a path — give the user the short answer: *"Create a `.gtd-import/` folder at the vault root, drop the Notion zip in, and re-run — or tell me the path."*
+
+    **Staging.** If what you found is one or more `.zip` files:
+
+    - Unzip **every part** into `.gtd-import/unzipped/` (create `.gtd-import/` if needed — say so first; it's the one thing this skill writes outside `GTD/`). Missing a `-Part-2.zip` means silently importing a fraction of the workspace.
+    - **If the vault is a git repo** (`.git/` at the root), check that `.gtd-import/` is ignored, and offer to add it to `.gitignore` before unzipping. A Notion export is easily hundreds of megabytes; committing it is nobody's intent.
+    - Once unzipped, that tree is read-only for the rest of the run.
+
+    If the export is already unzipped in a **normal (non-dot) folder inside the vault**, warn the user: Obsidian is indexing those pages right now, and they'll surface in search and possibly on the board. Offer to move the folder into `.gtd-import/`. Never leave it and say nothing.
+
+    Then work out the export's shape:
 
     | What's there | What it is |
     |---|---|
-    | `Export-<uuid>.zip`, possibly `-Part-1`, `-Part-2`, … | Notion Markdown & CSV export, still zipped. Unzip **every part into one scratch directory outside the vault** and survey that. |
+    | `Export-<uuid>.zip`, possibly `-Part-1`, `-Part-2`, … | Notion Markdown & CSV export, still zipped — stage it as above, then survey `.gtd-import/unzipped/` |
     | folders and `.md` files whose names end in a space plus 32 hex characters | an unzipped Notion Markdown & CSV export |
     | `.csv` files only | Notion CSV-only export, or a hand-made CSV — properties without page bodies |
     | `.html` files | Notion **HTML** export — stop and ask for a re-export as **Markdown & CSV**. HTML loses property typing and maps badly. |
-
-    If the export sits **inside the vault**, say so and ask for it to be moved out — otherwise Obsidian indexes it and stray pages surface on the board. If the user wants it left there, at minimum confirm it is not under `GTD/`.
 
     ## Step 2 — Survey before touching anything
 
@@ -182,7 +234,7 @@ Follow this against my export, then write it verbatim to `.claude/skills/gtd-imp
     2. **Skipped** items and why — collision, no title, unreadable.
     3. **Out of scope**: the loose pages you did not import, listed, with the reminder that the import writes nothing outside `GTD/`, so placing them is the user's call.
     4. **What didn't survive.** Notion formulas, rollups, synced blocks, database views, comments, and page history have no equivalent here. Name what was dropped instead of implying everything mapped.
-    5. **Next steps**: run `/gtd-triage` on whatever landed in `inbox`, then `/gtd-review` for a first honesty pass — and the export is now safe to delete.
+    5. **Next steps**: run `/gtd-triage` on whatever landed in `inbox`, then `/gtd-review` for a first honesty pass. `.gtd-import/` (or wherever the export came from) is now safe for the user to delete — say so, name the path, and don't delete it yourself.
 
     ## Notion export anatomy (reference)
 
