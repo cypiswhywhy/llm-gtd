@@ -16,7 +16,7 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 |---|---|
 | [`install.md`](install.md) | The installer prompt. Sets up a fresh vault — schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills. Safe on vaults that already have notes. |
 | [`update.md`](update.md) | The migration prompt. Brings an already-installed vault up to the current schema version, non-destructively. Also the canonical home of the migration changelog. |
-| [`import-notion.md`](import-notion.md) | The import prompt. Bulk-loads an existing system — a Notion **Markdown & CSV** export, or a plain CSV — onto the board. Also the canonical home of the `/gtd-import` skill. |
+| [`import-notion.md`](import-notion.md) | The import prompt. Bulk-loads an existing system — a Notion **Markdown & CSV** export, or a plain CSV — onto the board. Paste-in only: importing happens once per vault, so there's no skill to install. |
 | [`install.html`](install.html) | A polished single-page version of `install.md` — pitch, setup steps, and a copy-button prompt block. Open it in a browser, or paste it into an Artifact for a shareable link. |
 
 ## Getting started
@@ -37,8 +37,10 @@ Day to day: `/gtd-triage` clears the inbox, `/gtd-review` is the weekly lint pas
 Export your workspace as **Markdown & CSV** (all rows, everything), then **drop the zip into a
 `.gtd-import/` folder at your vault's root** — no need to unzip. The leading dot keeps Obsidian
 from indexing it, so the export can sit inside the vault without polluting search or the board.
-Then run `/gtd-import` (schema v5+), or paste in the prompt from
-[`import-notion.md`](import-notion.md).
+Then paste in the prompt from [`import-notion.md`](import-notion.md).
+
+There's no `/gtd-import` skill on purpose. Importing is a once-per-vault job, so a pasted prompt
+is always current, needs no install step, and can't go stale the way an installed copy does.
 
 You can skip even that: the import checks `.gtd-import/`, the vault root, `~/Downloads/`, and the
 vault's parent before it asks you for a path, so leaving the zip in Downloads usually works.
@@ -59,7 +61,7 @@ GTD/Attachments/        # files an import brought with it (on demand)
 GTD/Log.md              # append-only activity log
 Templates/GTD Item.md   # Templater template for new items
 clipper/                # Obsidian Web Clipper template
-.claude/skills/         # gtd-triage, gtd-review, gtd-update, gtd-import
+.claude/skills/         # gtd-triage, gtd-review, gtd-update
 .obsidian/snippets/gtd-kanban.css   # the one file written outside GTD/
 ```
 

@@ -48,7 +48,7 @@ Report which of the files below already existed and how you handled each before 
     GTD/Board.base    # kanban board (Bases + kanban-bases-view plugin) + Inbox/Stale/All views
     GTD/Items/        # one markdown note per GTD item — the ONLY place items live
     GTD/Archive/      # old done items, moved here by review
-    GTD/Attachments/  # files an import brought with it — created on demand by /gtd-import
+    GTD/Attachments/  # files an import brought with it — created on demand
     GTD/Log.md        # append-only activity log
     Templates/GTD Item.md   # Templater template for new items
     clipper/          # Obsidian Web Clipper template
@@ -91,7 +91,7 @@ Report which of the files below already existed and how you handled each before 
     - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.
     - **triage** (`/gtd-triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
     - **review** (`/gtd-review`) — the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
-    - **import** (`/gtd-import`) — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/`: survey the export, propose a status/tag/field map, then write. A capture operation — the thinking happens afterwards at triage.
+    - **import** — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/` by pasting the repo's `import-notion.md` prompt: it surveys the export, proposes a status/tag/field map, then writes. A capture operation — the thinking happens afterwards at triage.
     - **query** — answer questions from item notes ("what am I waiting for?", "what did I research about shoes?"). Read-only.
 
     ## Rules for the agent
@@ -387,24 +387,22 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
     1. **`.claude/skills/gtd-update/SKILL.md`** — overwrite it with the current version of this skill: the whole thing, from its frontmatter through the changelog in effect. Set its `CANONICAL_SOURCE:` by the relocation rule in step 2 — if the vault's existing value is a URL that differs from the one this file declares, take this file's; if it's a local path, keep the vault's.
     2. **Nothing else.** No frontmatter, board, template, clipper, or `CLAUDE.md` edits. Don't touch item notes and don't bump `updated` on anything — only the `Schema version:` marker moves.
 
-    ### v4 → v5 — `/gtd-import`, for moving an existing system into the vault
+    ### v4 → v5 — room for an imported system
 
-    The item schema doesn't change. v5 adds a fourth skill, `/gtd-import`, which bulk-loads an existing task system — a Notion "Markdown & CSV" export, or a plain CSV — into `GTD/Items/`. It surveys the export, proposes a source-status → GTD-status map, a tag map folded onto the vault's existing vocabulary, and a field map, and writes only after the human confirms. Alongside it come the `GTD/Attachments/` folder (created on demand, for files an import brings with it) and the `[import]` log op.
+    The item schema doesn't change. v5 makes space for bulk-loading an existing task system — a Notion "Markdown & CSV" export, or a plain CSV — into `GTD/Items/`: the `GTD/Attachments/` folder for files an import brings with it, and an `[import]` log op.
 
-    The skill is **fetched, not embedded**: it's long, it matters once per vault, and copying it into every mirror of this changelog would bloat every install for no one's benefit. Its canonical home is the repo's `import-notion.md`, beside `update.md`.
+    The import itself is **a prompt, not a skill**: the repo's `import-notion.md`, pasted into Claude Code at the vault root. Importing happens once per vault, so installing a command into every vault — and then keeping that copy current through schema bumps — costs more than it saves. Nothing to install here, and nothing that can go stale.
 
-    1. **`.claude/skills/gtd-import/SKILL.md`** — create it from the `gtd-import` skill printed in the repo's `import-notion.md`. Resolve that file's location relative to `CANONICAL_SOURCE` — same directory, filename `import-notion.md` (so `.../main/update.md` → `.../main/import-notion.md`) — and write the skill body verbatim and unindented, from its frontmatter to the end. If the fetch fails, **do not block the migration**: apply everything else, then report that `/gtd-import` couldn't be installed and that pasting the repo's `import-notion.md` prompt by hand installs it.
-    2. **`GTD/Log.md`** — add `[import]` to the `Ops:` line in the header.
-    3. **`CLAUDE.md`** — add `GTD/Attachments/  # files an import brought with it — created on demand by /gtd-import` to the Layout block, and add an **import** bullet to Operations: "**import** (`/gtd-import`) — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/`: survey the export, propose a status/tag/field map, then write. A capture operation — the thinking happens afterwards at triage."
-    4. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line noting that `/gtd-import` brings a Notion export or CSV in.
-    5. **No item notes are touched**, no `updated` dates move, and `GTD/Attachments/` is not created until an import actually needs it.
+    1. **`GTD/Log.md`** — add `[import]` to the `Ops:` line in the header.
+    2. **`CLAUDE.md`** — add `GTD/Attachments/  # files an import brought with it — created on demand` to the Layout block, and add an **import** bullet to Operations: "**import** — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/` by pasting the repo's `import-notion.md` prompt: it surveys the export, proposes a status/tag/field map, then writes. A capture operation — the thinking happens afterwards at triage."
+    3. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line noting that `import-notion.md` brings a Notion export or CSV in.
+    4. **No item notes are touched**, no `updated` dates move, and `GTD/Attachments/` is not created until an import actually needs it.
 
 ## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **`.obsidian/snippets/gtd-kanban.css`** containing `.obk-card-property-label { display: none; }`, and enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, never overwrite). This is the only file written outside `GTD/`; it hides the property-name labels on kanban cards. Tell me to reload Obsidian (Ctrl/Cmd+R) once so it takes effect, and note that if Obsidian was open while you wrote `appearance.json` it may overwrite the edit on exit — I can just re-enable the snippet in Settings → Appearance → CSS snippets.
-- **Only if I'm migrating from another system (Notion, a CSV) — ask me:** also install the import skill. Fetch `https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/import-notion.md` and write the `gtd-import` skill it prints to `.claude/skills/gtd-import/SKILL.md`, verbatim and unindented. Skip it without comment if I say I'm not importing; if the fetch fails, just tell me — nothing else in the install depends on it, and I can paste that file's prompt in later.
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and — if it was installed — that `/gtd-import` loads a Notion export or CSV into the board.
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
 - Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v5): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
