@@ -21,7 +21,7 @@ The work here is editing prompt text so that it stays internally consistent acro
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 5**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 6**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -59,19 +59,27 @@ then re-validates, aborting otherwise.
 
 ## Constraints the prompt text must preserve
 
-- **Vault namespacing.** Everything the installer writes lives under `GTD/` plus `Templates/GTD Item.md`,
-  `clipper/`, and `.claude/skills/`. The **one** deliberate exception (since v3) is
-  `.obsidian/snippets/gtd-kanban.css` (`.obk-card-property-label { display: none; }`), enabled by
-  read-modify-writing `"gtd-kanban"` into `enabledCssSnippets` in `.obsidian/appearance.json` —
-  preserving every other key. (v5's `GTD/Attachments/` is *not* an exception — it's inside `GTD/`.) Only `/gtd-update` and fresh installs may touch it; the generated
-  `CLAUDE.md` rule 6 still forbids `.obsidian/` writes during item operations.
+- **Vault namespacing — no exceptions.** Everything the installer writes lives under `GTD/` plus
+  `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`. Nothing in `.obsidian/`, ever, including
+  during `/gtd-update`. (v5's `GTD/Attachments/` is not an exception — it's inside `GTD/`.) v3–v5 did
+  carry one exception, `.obsidian/snippets/gtd-kanban.css`; **v6 removed it** — the `Base Board` plugin
+  draws no property labels, so there is nothing left to hide with CSS. The v6 migration deliberately
+  leaves the now-inert snippet on disk in already-installed vaults rather than deleting a user file.
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
   or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.
 - **`status` is the only completion signal** (`inbox|focus|next|someday|waiting|done`). v2 deliberately
   removed the redundant `done:` boolean; don't reintroduce a second completion field.
-- **`GTD/Board.base` kanban view's `order:` must not list `file.name`** — the `kanban-bases-view` plugin
-  always renders the card title from the filename, so listing it prints the name twice. The *table*
-  views do need `file.name`.
+- **`GTD/Board.base` kanban view's `order:` must list `file.name` and nothing else.** Since v6 the board
+  is the `Base Board` plugin (`type: kanban`), which inverted the old rule: it never draws `file.name` as
+  a chip but re-inserts it into `order:` on every render (rewriting the file if absent), and it renders
+  tags as its own colored pills regardless of `order:` — so listing `tags` prints every tag twice. Two
+  more v6 shapes that are easy to get wrong: `groupBy.property` is the **bare** `status` (not
+  `note.status`), and `boardColumns` is a **flat list** (not a map keyed by property). The *table* views
+  still need `file.name` in `order:`, and must stay `type: table` — a kanban view without a `groupBy` is
+  what made pre-v6 boards write every note path into `columnOrders`.
+- **`kanban_order` in item frontmatter belongs to the plugin.** `Base Board` writes it when cards are
+  dragged within a column. The generated `CLAUDE.md` must tell the agent to preserve it untouched and
+  not bump `updated` for it; it is not a second completion signal.
 - **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
   REPORT it to the user, never attempt it.
 

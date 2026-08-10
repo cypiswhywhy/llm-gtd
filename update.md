@@ -129,6 +129,33 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     3. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line noting that `import-notion.md` brings a Notion export or CSV in.
     4. **No item notes are touched**, no `updated` dates move, and `GTD/Attachments/` is not created until an import actually needs it.
 
+    ### v5 → v6 — new kanban plugin (`Base Board`), and the board file stops bloating
+
+    The board moves from `kanban-bases-view` to `Base Board` (`mderazon/obsidian-base-board`), which is actively maintained, renders incrementally, colors tags, and — the reason this is urgent — stores manual card order as a `kanban_order` property **in each note** instead of as a list of note paths inside `Board.base`.
+
+    Under the old plugin, any kanban view without a `groupBy` fell back to grouping by `file.file` and wrote *every note path in the vault* into `columnOrders`. On a 1000-item vault that produced an 88 KB, 1500-line `Board.base` that the plugin re-parsed and re-serialized on every interaction — the direct cause of the board being slow. This migration removes that.
+
+    **Do the manual step FIRST.** Until `Base Board` is installed, a `type: kanban` view renders as an unknown-view error. If the user hasn't installed it yet, report the manual step and stop — do not rewrite `Board.base` and leave them with a broken board.
+
+    1. **`GTD/Board.base`** — rewrite the **kanban view** (the one named `Board`):
+       - `type: kanban-view` → `type: kanban`
+       - `groupByProperty: note.status` → a `groupBy:` block with `property: status` (**bare**, no `note.` prefix) and `direction: ASC`
+       - `columnOrders: { note.status: [...] }` → `boardColumns:` as a **flat list** of the same six values in the same order: `inbox, focus, next, someday, waiting, done`
+       - `order:` → **`file.name` only**. Delete `- tags`: `Base Board` renders tags as their own colored pills regardless of `order:`, so leaving it listed prints every tag twice. `file.name` is not drawn as a chip and must be present — the plugin re-inserts it on every render and rewrites the file if it's missing.
+       - `quickAddFolder: GTD/Items` → `newItemFolder: GTD/Items`, and add `newItemTemplate: Templates/GTD Item.md` plus a `newItemProperties:` block setting `status: inbox`, so cards created on the board get the schema frontmatter.
+       - Delete `cardOrders:` and any `columnColors:` block keyed by property (`columnColors: { note.status: {} }`). `Base Board`'s own `columnColors:` is a flat name→color map that it writes itself; don't hand-author it.
+    2. **`GTD/Board.base` — strip the bloat.** Delete every `columnOrders:` block anywhere in the file, in particular any `file.file:` list of `GTD/Items/...` note paths. These are dead config from the old plugin and can be thousands of lines. Then check the `Inbox` and `Stale` views: if either has `type: kanban-view`, set it back to `type: table` (that drift is what generated the path lists) and delete any `columnOrders`/`cardOrders` under it. Leave their `filters:`, `order:` and `sort:` blocks alone — table views keep `file.name` in `order:`. Report the before/after line count of the file.
+    3. **Item + archive notes** — nothing to change, but from now on a `kanban_order:` key may appear in any note's frontmatter. It is the plugin's, not ours: never add, reorder, normalize, or strip it, and don't bump `updated` because of it.
+    4. **`.obsidian/snippets/gtd-kanban.css`** — now inert: it targets `.obk-card-property-label`, a class only the old plugin emitted, and the new board draws no property labels to hide. **Do not delete it and do not touch `.obsidian/`** — just tell the user it does nothing now and they can remove it and its `enabledCssSnippets` entry themselves if they want. v6 restores the rule that llm-gtd writes nothing outside `GTD/`, `Templates/GTD Item.md`, `clipper/` and `.claude/skills/`.
+    5. **`CLAUDE.md`** — in the Layout block change the `GTD/Board.base` comment to say `Base Board plugin` and delete the `.obsidian/snippets/gtd-kanban.css` line, replacing it with a note that nothing is written outside those paths; after the item-schema YAML add a paragraph that `kanban_order` may appear, belongs to the plugin, and must be left exactly as found; restore rule 6 to forbid `.obsidian/` writes outright (no snippet exception, including during `/gtd-update`); and amend rule 7's "no extra keys" to except the plugin's `kanban_order`.
+    6. **`README.md`** — if the vault has an `## LLM-GTD` section, replace any mention of `kanban-bases-view` or the `gtd-kanban` CSS snippet with `Base Board`, and note that card order within a column is stored per note in `kanban_order`.
+
+    Manual steps to REPORT to the user (these live in Obsidian's plugin UI and can't be scripted — tell the user, don't attempt them):
+
+    - **Install the new plugin:** Settings → Community plugins → Browse → search **Base Board** → Install, then enable it. Needs Obsidian **1.10.2 or newer** (Settings → About shows the version). Do this before the board is rewritten.
+    - **Retire the old one:** once the board renders, `kanban-bases-view` can be disabled and uninstalled. Nothing in llm-gtd uses it after v6.
+    - **Optional:** column colors and per-column WIP limits are on the board's own right-click menu; tag colors are on a tag chip's context menu. These are stored in `Board.base` by the plugin.
+
 ---
 
 Before applying anything, confirm the vault's current version and the target, then show me the plan.

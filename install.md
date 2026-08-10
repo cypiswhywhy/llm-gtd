@@ -2,17 +2,17 @@
 
 A self-contained prompt for setting this system up in an Obsidian vault — paste it into Claude Code after the one manual step below. It embeds the full schema, so Claude Code can write every file from scratch without needing access to this repo.
 
-Works on a **fresh vault** or an **existing one**: almost everything the system creates is namespaced under `GTD/` (plus `clipper/` and the Claude skills), and the prompt below carries guard clauses so it merges into — rather than overwrites — a vault that already has content. The one thing it writes outside `GTD/` is a single namespaced CSS snippet (`.obsidian/snippets/gtd-kanban.css`) that keeps the board's cards tidy; beyond that it only reads and writes inside `GTD/`, so your existing notes are never touched.
+Works on a **fresh vault** or an **existing one**: everything the system creates is namespaced under `GTD/` (plus `Templates/GTD Item.md`, `clipper/` and the Claude skills), and the prompt below carries guard clauses so it merges into — rather than overwrites — a vault that already has content. It writes nothing at all outside those paths — no `.obsidian/` config, no CSS snippet — so your existing notes and your Obsidian setup are never touched.
 
 ## One-time manual steps
 
 These happen in Obsidian's own UI — no prompt can do them.
 
-1. **Install the plugins.** Settings → Community plugins → enable, then install these six: `Dataview`, `Templater`, `Obsidian Kanban`, `kanban-bases-view`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. (`kanban-bases-view` needs Obsidian's Bases feature, so use a reasonably current version.)
+1. **Install the plugins.** Settings → Community plugins → enable, then install these six: `Dataview`, `Templater`, `Obsidian Kanban`, `Base Board`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. (`Base Board` renders the kanban board on top of Obsidian's Bases feature and needs Obsidian **1.10.2 or newer**.)
 
 2. **Auto-fill frontmatter on new notes** — so items you create by hand in the inbox get `created`/`source` without thinking. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add a mapping: folder `GTD/Items` → template `Templates/GTD Item.md`. Now any note you create in `GTD/Items/` is stamped with the schema frontmatter automatically. (Web-clipped notes already carry it; this covers the hand-made ones. Triage also backfills anything that still slips through.)
 
-The board's cards are kept clean automatically: the prompt creates and enables a small CSS snippet (`.obsidian/snippets/gtd-kanban.css`) that hides the property-name labels, so a card reads `tag1 tag2` instead of `Tags: tag1 tag2`. You may just need to **reload Obsidian once** (Ctrl/Cmd+R) after setup for it to take effect.
+Nothing else is needed to make the cards look right: `Base Board` draws the note name as the card title and renders each item's tags as its own colored pills, so a card reads `tag1 tag2` with no property-name labels and no CSS snippet involved. Cards are ordered by dragging, and that order is stored per note in a `kanban_order` property.
 
 ## The prompt
 
@@ -40,20 +40,21 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 5.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 6.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
     ```
-    GTD/Board.base    # kanban board (Bases + kanban-bases-view plugin) + Inbox/Stale/All views
+    GTD/Board.base    # kanban board (Bases + Base Board plugin) + Inbox/Stale/All views
     GTD/Items/        # one markdown note per GTD item — the ONLY place items live
     GTD/Archive/      # old done items, moved here by review
     GTD/Attachments/  # files an import brought with it — created on demand
     GTD/Log.md        # append-only activity log
     Templates/GTD Item.md   # Templater template for new items
     clipper/          # Obsidian Web Clipper template
-    .obsidian/snippets/gtd-kanban.css   # the ONE file written outside GTD/ — hides card property labels
     ```
+
+    Nothing is written outside those paths — in particular `.obsidian/` is never touched.
 
     ## Item schema
 
@@ -68,6 +69,10 @@ Report which of the files below already existed and how you handled each before 
     source:         # URL for web clips; empty otherwise
     ---
     ```
+
+    One further key may appear, and it is **not** yours to manage: `kanban_order`, a number the
+    `Base Board` plugin writes when cards are dragged within a column. Leave it exactly as found —
+    never add, reorder, normalize, or strip it. It carries no GTD meaning.
 
     `status` is the single source of truth and the ONLY completion signal — an item is done when `status: done`, nothing else. There is deliberately no separate `done` boolean: the kanban plugin has no per-card checkbox that moves a card between columns, so a second field would just drift out of sync with `status`.
 
@@ -101,8 +106,8 @@ Report which of the files below already existed and how you handled each before 
     3. **Bump `updated`** (YYYY-MM-DD) on every note you modify.
     4. **Log every operation** in `GTD/Log.md`: append-only, newest at the bottom, format `YYYY-MM-DD HH:MM [op] message`. Never rewrite existing lines.
     5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.
-    6. **Don't touch** `.obsidian/` config or `GTD/Board.base` during item operations. The sole exception to writing outside `GTD/` is the `gtd-kanban` CSS snippet — and even that is only created/enabled by `/gtd-update`, never during capture/triage/review.
-    7. Frontmatter must always match the schema above — no extra keys, no renamed keys.
+    6. **Don't touch** `.obsidian/` config or `GTD/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`.
+    7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. The one key you may find and must preserve untouched is the plugin's `kanban_order`.
 
 ## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
@@ -114,7 +119,7 @@ Report which of the files below already existed and how you handled each before 
     source:
     ---
 
-## 3. `GTD/Board.base` (Bases file — needs the `kanban-bases-view` plugin)
+## 3. `GTD/Board.base` (Bases file — needs the `Base Board` plugin)
 
     filters:
       and:
@@ -131,24 +136,24 @@ Report which of the files below already existed and how you handled each before 
       note.source:
         displayName: Source
     views:
-      - type: kanban-view
+      - type: kanban
         name: Board
+        groupBy:
+          property: status
+          direction: ASC
         order:
-          - tags
-        groupByProperty: note.status
-        columnOrders:
-          note.status:
-            - inbox
-            - focus
-            - next
-            - someday
-            - waiting
-            - done
-        quickAddFolder: GTD/Items
-        cardOrders:
-          note.status: {}
-        columnColors:
-          note.status: {}
+          - file.name
+        newItemFolder: GTD/Items
+        newItemTemplate: Templates/GTD Item.md
+        newItemProperties:
+          status: inbox
+        boardColumns:
+          - inbox
+          - focus
+          - next
+          - someday
+          - waiting
+          - done
       - type: table
         name: Inbox
         filters:
@@ -198,7 +203,15 @@ Report which of the files below already existed and how you handled each before 
           - property: updated
             direction: DESC
 
-The **kanban view's** `order:` lists only `tags` on purpose: the card already shows the note name as its title, so listing `file.name` there would print the name a second time. The **table** views keep `file.name` because a table needs it as a column.
+Three things about the **kanban view** are deliberate and easy to break:
+
+- `order:` lists **`file.name` and nothing else**. `Base Board` draws the card title from the filename and renders each item's tags as its own colored pills, both independently of `order:` — so adding `tags` here would print every tag twice, once as a pill and once as a `Tags: …` chip. `file.name` itself is never drawn as a chip (the plugin skips it) but must stay listed: the plugin re-inserts it on every render to keep card titles searchable, and rewrites `Board.base` if it's missing.
+- `groupBy.property` is the **bare** `status`, not `note.status`.
+- `boardColumns` is a **flat list** of the status values, not a map keyed by property.
+
+The **table** views keep `file.name` in `order:` because a table needs it as a column.
+
+Cards are ordered within a column by dragging; the plugin persists that as a `kanban_order` property in each note, so it never accumulates in `Board.base`. Column colors and per-column WIP limits are set from the board's own context menu and land in `columnColors:` / `wipLimits:` — leave them out of the file you write and let the plugin add them.
 
 ## 4. `GTD/Log.md`
 
@@ -398,12 +411,39 @@ The **kanban view's** `order:` lists only `tags` on purpose: the card already sh
     3. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line noting that `import-notion.md` brings a Notion export or CSV in.
     4. **No item notes are touched**, no `updated` dates move, and `GTD/Attachments/` is not created until an import actually needs it.
 
+    ### v5 → v6 — new kanban plugin (`Base Board`), and the board file stops bloating
+
+    The board moves from `kanban-bases-view` to `Base Board` (`mderazon/obsidian-base-board`), which is actively maintained, renders incrementally, colors tags, and — the reason this is urgent — stores manual card order as a `kanban_order` property **in each note** instead of as a list of note paths inside `Board.base`.
+
+    Under the old plugin, any kanban view without a `groupBy` fell back to grouping by `file.file` and wrote *every note path in the vault* into `columnOrders`. On a 1000-item vault that produced an 88 KB, 1500-line `Board.base` that the plugin re-parsed and re-serialized on every interaction — the direct cause of the board being slow. This migration removes that.
+
+    **Do the manual step FIRST.** Until `Base Board` is installed, a `type: kanban` view renders as an unknown-view error. If the user hasn't installed it yet, report the manual step and stop — do not rewrite `Board.base` and leave them with a broken board.
+
+    1. **`GTD/Board.base`** — rewrite the **kanban view** (the one named `Board`):
+       - `type: kanban-view` → `type: kanban`
+       - `groupByProperty: note.status` → a `groupBy:` block with `property: status` (**bare**, no `note.` prefix) and `direction: ASC`
+       - `columnOrders: { note.status: [...] }` → `boardColumns:` as a **flat list** of the same six values in the same order: `inbox, focus, next, someday, waiting, done`
+       - `order:` → **`file.name` only**. Delete `- tags`: `Base Board` renders tags as their own colored pills regardless of `order:`, so leaving it listed prints every tag twice. `file.name` is not drawn as a chip and must be present — the plugin re-inserts it on every render and rewrites the file if it's missing.
+       - `quickAddFolder: GTD/Items` → `newItemFolder: GTD/Items`, and add `newItemTemplate: Templates/GTD Item.md` plus a `newItemProperties:` block setting `status: inbox`, so cards created on the board get the schema frontmatter.
+       - Delete `cardOrders:` and any `columnColors:` block keyed by property (`columnColors: { note.status: {} }`). `Base Board`'s own `columnColors:` is a flat name→color map that it writes itself; don't hand-author it.
+    2. **`GTD/Board.base` — strip the bloat.** Delete every `columnOrders:` block anywhere in the file, in particular any `file.file:` list of `GTD/Items/...` note paths. These are dead config from the old plugin and can be thousands of lines. Then check the `Inbox` and `Stale` views: if either has `type: kanban-view`, set it back to `type: table` (that drift is what generated the path lists) and delete any `columnOrders`/`cardOrders` under it. Leave their `filters:`, `order:` and `sort:` blocks alone — table views keep `file.name` in `order:`. Report the before/after line count of the file.
+    3. **Item + archive notes** — nothing to change, but from now on a `kanban_order:` key may appear in any note's frontmatter. It is the plugin's, not ours: never add, reorder, normalize, or strip it, and don't bump `updated` because of it.
+    4. **`.obsidian/snippets/gtd-kanban.css`** — now inert: it targets `.obk-card-property-label`, a class only the old plugin emitted, and the new board draws no property labels to hide. **Do not delete it and do not touch `.obsidian/`** — just tell the user it does nothing now and they can remove it and its `enabledCssSnippets` entry themselves if they want. v6 restores the rule that llm-gtd writes nothing outside `GTD/`, `Templates/GTD Item.md`, `clipper/` and `.claude/skills/`.
+    5. **`CLAUDE.md`** — in the Layout block change the `GTD/Board.base` comment to say `Base Board plugin` and delete the `.obsidian/snippets/gtd-kanban.css` line, replacing it with a note that nothing is written outside those paths; after the item-schema YAML add a paragraph that `kanban_order` may appear, belongs to the plugin, and must be left exactly as found; restore rule 6 to forbid `.obsidian/` writes outright (no snippet exception, including during `/gtd-update`); and amend rule 7's "no extra keys" to except the plugin's `kanban_order`.
+    6. **`README.md`** — if the vault has an `## LLM-GTD` section, replace any mention of `kanban-bases-view` or the `gtd-kanban` CSS snippet with `Base Board`, and note that card order within a column is stored per note in `kanban_order`.
+
+    Manual steps to REPORT to the user (these live in Obsidian's plugin UI and can't be scripted — tell the user, don't attempt them):
+
+    - **Install the new plugin:** Settings → Community plugins → Browse → search **Base Board** → Install, then enable it. Needs Obsidian **1.10.2 or newer** (Settings → About shows the version). Do this before the board is rewritten.
+    - **Retire the old one:** once the board renders, `kanban-bases-view` can be disabled and uninstalled. Nothing in llm-gtd uses it after v6.
+    - **Optional:** column colors and per-column WIP limits are on the board's own right-click menu; tag colors are on a tag chip's context menu. These are stored in `Board.base` by the plugin.
+
 ## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
-- **`.obsidian/snippets/gtd-kanban.css`** containing `.obk-card-property-label { display: none; }`, and enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, never overwrite). This is the only file written outside `GTD/`; it hides the property-name labels on kanban cards. Tell me to reload Obsidian (Ctrl/Cmd+R) once so it takes effect, and note that if Obsidian was open while you wrote `appearance.json` it may overwrite the edit on exit — I can just re-enable the snippet in Settings → Appearance → CSS snippets.
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, that the `gtd-kanban` CSS snippet keeps cards tidy (reload Obsidian once if labels still show), how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v5): board, template, schema, skills created.`
+- **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin and that dragging a card between columns rewrites `status` while dragging within a column stores a `kanban_order` property on the note, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v6): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

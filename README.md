@@ -23,7 +23,7 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 
 1. Create (or open) an Obsidian vault.
 2. In Obsidian: Settings → Community plugins → install and enable `Dataview`, `Templater`,
-   `Obsidian Kanban`, `kanban-bases-view`, `Obsidian Tasks Plugin`, `Icon Folder`.
+   `Obsidian Kanban`, `Base Board`, `Obsidian Tasks Plugin`, `Icon Folder`.
 3. Open a terminal at the vault's root, run `claude`, and paste in the prompt from
    [`install.md`](install.md) (everything between the two `---` markers).
 4. Finish the one manual step it reports: Settings → Templater → "Trigger Templater on new
@@ -62,7 +62,6 @@ GTD/Log.md              # append-only activity log
 Templates/GTD Item.md   # Templater template for new items
 clipper/                # Obsidian Web Clipper template
 .claude/skills/         # gtd-triage, gtd-review, gtd-update
-.obsidian/snippets/gtd-kanban.css   # the one file written outside GTD/
 ```
 
 Nothing else in the vault is read, moved, retagged, or modified — the prompts are explicit
@@ -70,7 +69,7 @@ about that, and they stop and ask rather than overwrite anything that already ex
 
 ## Schema versioning
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v5**). When the
+The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v6**). When the
 schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
 mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
 
