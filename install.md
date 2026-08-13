@@ -12,7 +12,9 @@ These happen in Obsidian's own UI — no prompt can do them.
 
 2. **Auto-fill frontmatter on new notes** — so items you create by hand in the inbox get `created`/`source` without thinking. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add a mapping: folder `GTD/Items` → template `Templates/GTD Item.md`. Now any note you create in `GTD/Items/` is stamped with the schema frontmatter automatically. (Web-clipped notes already carry it; this covers the hand-made ones. Triage also backfills anything that still slips through.)
 
-Nothing else is needed to make the cards look right: `Base Board` draws the note name as the card title and renders each item's tags as its own colored pills, so a card reads `tag1 tag2` with no property-name labels and no CSS snippet involved. Cards are ordered by dragging, and that order is stored per note in a `kanban_order` property.
+Nothing else is needed to make the cards look right: `Base Board` draws the note name as the card title and renders each item's tags as its own colored pills, so a card reads `tag1 tag2` with no property-name labels and no CSS snippet involved.
+
+Card order inside a column is the plugin's own `kanban_order` property, **not** the Bases "Sort" setting — `Base Board` ignores that on a kanban view by design, so setting it there does nothing. Instead every new item is stamped with minus its creation timestamp, which sorts newest to the top of its column automatically, whether it arrived from the clipper, the template or the board's `+` button. Dragging still works and takes precedence.
 
 ## The prompt
 
@@ -40,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 6.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 7.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -67,12 +69,24 @@ Report which of the files below already existed and how you handled each before 
     created: YYYY-MM-DD
     updated: YYYY-MM-DD   # bump on EVERY meaningful change
     source:         # URL for web clips; empty otherwise
+    kanban_order: -1786636800000   # board sort key — stamped at creation, then hands off to the plugin
     ---
     ```
 
-    One further key may appear, and it is **not** yours to manage: `kanban_order`, a number the
-    `Base Board` plugin writes when cards are dragged within a column. Leave it exactly as found —
-    never add, reorder, normalize, or strip it. It carries no GTD meaning.
+    `kanban_order` is the board's sort key and it is **write-once, at creation**. A new item is born
+    with minus its creation timestamp in milliseconds (`-1786636800000`). `Base Board` sorts a column
+    by this value ascending, so a more negative number means a newer item and every column shows
+    **newest at the top** with no dragging involved. All three capture paths stamp it: the Templater
+    template, the web-clipper template, and the board's own `+` button (which supplies its own value).
+
+    After creation it belongs to the plugin. Dragging a card inside a column makes `Base Board`
+    rewrite the numbers in **that whole column** as its own short string keys (`a0`, `a1`, …),
+    preserving the order on screen — that is expected, not corruption. Numbers sort before strings,
+    so freshly captured items still arrive above hand-arranged ones.
+
+    So: stamp it on items *you* create, and otherwise leave every existing value **exactly as
+    found** — never re-stamp, reorder, normalize, or strip one, and never bump `updated` because of
+    it. It carries no GTD meaning and it is not a completion signal.
 
     `status` is the single source of truth and the ONLY completion signal — an item is done when `status: done`, nothing else. There is deliberately no separate `done` boolean: the kanban plugin has no per-card checkbox that moves a card between columns, so a second field would just drift out of sync with `status`.
 
@@ -107,7 +121,7 @@ Report which of the files below already existed and how you handled each before 
     4. **Log every operation** in `GTD/Log.md`: append-only, newest at the bottom, format `YYYY-MM-DD HH:MM [op] message`. Never rewrite existing lines.
     5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.
     6. **Don't touch** `.obsidian/` config or `GTD/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`.
-    7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. The one key you may find and must preserve untouched is the plugin's `kanban_order`.
+    7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. `kanban_order` is the one key with split ownership: stamp it on an item you create (minus the creation timestamp in milliseconds), and preserve any value you find untouched.
 
 ## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
@@ -117,7 +131,12 @@ Report which of the files below already existed and how you handled each before 
     created: <% tp.date.now("YYYY-MM-DD") %>
     updated: <% tp.date.now("YYYY-MM-DD") %>
     source:
+    kanban_order: <% -1 * Number(tp.date.now("x")) %>
     ---
+
+`tp.date.now("x")` is the creation time in milliseconds; negating it is what puts the newest item at
+the top of its board column (see the `kanban_order` note in section 1). Keep the `-1 *` — a positive
+timestamp sorts newest to the *bottom*.
 
 ## 3. `GTD/Board.base` (Bases file — needs the `Base Board` plugin)
 
@@ -147,6 +166,7 @@ Report which of the files below already existed and how you handled each before 
         newItemTemplate: Templates/GTD Item.md
         newItemProperties:
           status: inbox
+        newCardsToTop: true
         boardColumns:
           - inbox
           - focus
@@ -211,7 +231,9 @@ Three things about the **kanban view** are deliberate and easy to break:
 
 The **table** views keep `file.name` in `order:` because a table needs it as a column.
 
-Cards are ordered within a column by dragging; the plugin persists that as a `kanban_order` property in each note, so it never accumulates in `Board.base`. Column colors and per-column WIP limits are set from the board's own context menu and land in `columnColors:` / `wipLimits:` — leave them out of the file you write and let the plugin add them.
+A fourth thing about the kanban view is deliberate: **`newCardsToTop: true`**. The `+` button on a column writes its own `kanban_order` over whatever the template produced, and this option is what makes the value it picks land the card at the top instead of the bottom — it is how the `+` button agrees with the newest-first ordering the template and clipper produce. There is deliberately **no `sort:` block on the kanban view**: `Base Board` ignores Bases sorting on a board and orders cards by `kanban_order` alone, so a `sort:` here would look meaningful and do nothing. The *table* views do honour `sort:`.
+
+Card order within a column therefore comes from each note's `kanban_order` (newest first by default, dragging overrides), never from `Board.base` — so it can't accumulate there. Column colors and per-column WIP limits are set from the board's own context menu and land in `columnColors:` / `wipLimits:` — leave them out of the file you write and let the plugin add them.
 
 ## 4. `GTD/Log.md`
 
@@ -240,10 +262,16 @@ Cards are ordered within a column by dragging; the plugin persists that as a `ka
         { "name": "tags", "value": "", "type": "multitext" },
         { "name": "created", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
         { "name": "updated", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
-        { "name": "source", "value": "{{url}}", "type": "text" }
+        { "name": "source", "value": "{{url}}", "type": "text" },
+        { "name": "kanban_order", "value": "{{date|date:\"x\"|calc:\"*-1\"}}", "type": "number" }
       ],
       "triggers": []
     }
+
+`{{date|date:"x"|calc:"*-1"}}` is the clip's timestamp in milliseconds, negated by the clipper's
+`calc` filter — the same board sort key the Templater template produces, so a clipped item lands at
+the top of the inbox column. The property type must be `number`; as text it would sort as a string
+and fall below every real number.
 
 ## 6. `.claude/skills/gtd-triage/SKILL.md`
 
@@ -275,7 +303,7 @@ Cards are ordered within a column by dragging; the plugin persists that as a `ka
 
     4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.
 
-    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. This heals hand-made notes that bypassed the template.
+    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
 
     6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] "<title>" → <status> (tags: ...)`.
 
@@ -438,12 +466,30 @@ Cards are ordered within a column by dragging; the plugin persists that as a `ka
     - **Retire the old one:** once the board renders, `kanban-bases-view` can be disabled and uninstalled. Nothing in llm-gtd uses it after v6.
     - **Optional:** column colors and per-column WIP limits are on the board's own right-click menu; tag colors are on a tag chip's context menu. These are stored in `Board.base` by the plugin.
 
+    ### v6 → v7 — newest items at the top of every column
+
+    `Base Board` ignores the Bases `sort:` setting on a kanban view: it orders cards by the `kanban_order` property alone — dragged order first, then oldest-created — and its author has declined to make that configurable. v6 treated `kanban_order` as untouchable plugin state, which left every column stuck oldest-first with nothing the user could set to change it.
+
+    v7 takes ownership of the *initial* value instead. An item is created carrying minus its creation timestamp in milliseconds, and since the plugin sorts that ascending, the newest item sits at the top of its column. Dragging still wins: the first drag inside a column converts that column to the plugin's own string keys, preserving what's on screen. Numbers sort before strings, so later captures still arrive above hand-arranged cards.
+
+    1. **`Templates/GTD Item.md`** — add `kanban_order: <% -1 * Number(tp.date.now("x")) %>` as the last frontmatter line.
+    2. **`clipper/gtd-clipper-template.json`** — add `{ "name": "kanban_order", "value": "{{date|date:\"x\"|calc:\"*-1\"}}", "type": "number" }` to `properties`. The type must be `number`. Tell the user this file has to be re-imported into the Web Clipper extension by hand — editing the copy in the vault changes nothing on its own.
+    3. **`GTD/Board.base`** — in the kanban view (the one named `Board`), add `newCardsToTop: true` alongside `newItemProperties:`. Without it the `+` button — which writes its own `kanban_order` over whatever the template produced — drops new cards at the bottom. If that view has acquired a `sort:` block, delete it: it has never had any effect on a board and only misleads. Leave the table views' `sort:` blocks alone.
+    4. **Item notes** — for every note in `GTD/Items/` with **no** `kanban_order` key, add one set to minus the note's file-creation time in milliseconds (a note created 2026-08-13 12:00 UTC → `kanban_order: -1786622400000`). Notes that already have a value — a number, or one of the plugin's string keys — are left exactly as found. Do **not** bump `updated` on any of them: this is board bookkeeping, not a content change. `GTD/Archive/` is not on the board, so skip it. Report how many notes were stamped and how many were left alone.
+    5. **`.claude/skills/gtd-triage/SKILL.md`** — in the apply step, add `kanban_order` to the frontmatter backfill: if the key is absent set it to minus the note's file-creation time in milliseconds; never modify one that exists.
+    6. **`CLAUDE.md`** — add `kanban_order` to the item-schema YAML block; replace the "not yours to manage" paragraph with the write-once rule (born as minus the creation timestamp in ms, sorts newest first, the plugin rewrites a whole column into string keys on the first drag, never re-stamp an existing value, never bump `updated` for it); and amend rule 7 so `kanban_order` reads as stamped-at-creation and otherwise preserved.
+    7. **`README.md`** — if the vault has an `## LLM-GTD` section, note that board columns show newest first automatically, that the Bases "Sort" setting does nothing on the board, and that dragging a card overrides the automatic order for the cards present at that moment.
+
+    Manual step to REPORT to the user (only if they use the web clipper — it lives in the browser extension and can't be scripted):
+
+    - **Re-import the clipper template:** Web Clipper extension → Settings → Templates → import `clipper/gtd-clipper-template.json` again (or add the `kanban_order` property to the existing template by hand). Until then, clipped items keep arriving without a sort key and land at the bottom of the inbox column until the next `/gtd-triage` backfills them.
+
 ## 9. Also create
 
 - Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin and that dragging a card between columns rewrites `status` while dragging within a column stores a `kanban_order` property on the note, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v6): board, template, schema, skills created.`
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v7): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

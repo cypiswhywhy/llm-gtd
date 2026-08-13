@@ -21,7 +21,7 @@ The work here is editing prompt text so that it stays internally consistent acro
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 6**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 7**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -77,9 +77,17 @@ then re-validates, aborting otherwise.
   `note.status`), and `boardColumns` is a **flat list** (not a map keyed by property). The *table* views
   still need `file.name` in `order:`, and must stay `type: table` — a kanban view without a `groupBy` is
   what made pre-v6 boards write every note path into `columnOrders`.
-- **`kanban_order` in item frontmatter belongs to the plugin.** `Base Board` writes it when cards are
-  dragged within a column. The generated `CLAUDE.md` must tell the agent to preserve it untouched and
-  not bump `updated` for it; it is not a second completion signal.
+- **`kanban_order` in item frontmatter is write-once, then the plugin's.** `Base Board` ignores a
+  kanban view's `sort:` entirely (it reads only `boardColumns`, `collapsedColumns`, `tagColors`,
+  `cardOpenBehavior`, `columnColors`, `wipLimits`, `cardCoverProperty`, `newCardsToTop`,
+  `cardTitleProperty`) and orders cards by `kanban_order` alone — numbers ascending, then strings,
+  then unset; ties fall back to file ctime *ascending*. v7 exploits that: every capture path stamps
+  minus the creation timestamp in ms, so columns read newest-first. The `+` button overwrites that
+  value with its own, which is why the kanban view carries `newCardsToTop: true`. After creation the
+  field is the plugin's: the first in-column drag rewrites that whole column into fractional-index
+  string keys. The generated `CLAUDE.md` must say stamp-on-create, never re-stamp, never bump
+  `updated` for it; it is not a second completion signal. Upstream declined a sort-by-property option
+  ([issue #38](https://github.com/mderazon/obsidian-base-board/issues/38)) — don't re-litigate it.
 - **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
   REPORT it to the user, never attempt it.
 
