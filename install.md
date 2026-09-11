@@ -662,6 +662,9 @@ and fall below every real number.
     3. Body: the step text in full, its estimate, and a `Part of [[<Project name>]]` line. Copy across
        whatever detail from the project's `## Notes` the step needs — the point is that the card can be
        acted on without opening the project note.
+       If the step produces something — a list, a number, a decision — name the section of the project
+       note where that output lands: working material goes under `## Notes`. Never send it to
+       `## Outcome`, which holds nothing but the definition of done.
     4. Append `→ [[<Item name>]]` to that step's checklist line in the project note. Link by **note
        name, never by path**: review moves done items into `GTD/Archive/` and a name-only wikilink
        survives the move.
