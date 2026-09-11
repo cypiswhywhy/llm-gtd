@@ -189,6 +189,16 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     5. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line for `/gtd-project`: projects live in `GTD/Projects/` and never appear as cards, only the active step does, and running `/gtd-project` with no argument advances every project that has room.
     6. **No item notes are touched.** Only the `Schema version:` marker, the two new files, and the two docs change.
 
+    ### v8 → v9 — a project that stalls gets surfaced, not forgotten
+
+    v8 gave every project exactly one visible step. The failure mode that creates is silent: the step goes cold, the card stays quiet, nothing is overdue, and the project simply stops existing. No signal fires, because the system is working as designed. That silence is precisely what this system exists to prevent, so v9 teaches `/gtd-review` to look for it.
+
+    Movement is **derived, never stored** — no new frontmatter key, no backfill, nothing that can drift. A project last moved on the latest of three dates already on disk: the most recent `✅ YYYY-MM-DD` in its `## Steps` checklist, the `updated` of its live step item(s), and its own `created`.
+
+    1. **`.claude/skills/gtd-review/SKILL.md`** — add a **Stalled projects** check as the new check **1** and renumber the existing eight to 2–9. The check: for each `GTD/Projects/` note with `status: active`, derive the last-moved date as above; stalled at **14 days** of no movement, or **30 days** for a project already at `status: waiting` (blocked is not a permanent state); `someday` projects are skipped. Stalled projects are reported **first**, one line each — project, days since it moved, the step it is stuck on — with the single question *what is blocking it?* and **exactly one** proposed exit out of four: needs a sweep (`/gtd-project` promotes the next step; the review never promotes), the step is too big (offer to split it into two checklist lines), blocked on another party (`status: waiting` with who and since when), or over 60 days with no exit fitting (ask outright: `someday`, or `done` with a `Cancelled:` line). Proposing all four per project is what turns a review into another pile of decisions, so propose one and say why. A step item of a *stalled* project is reported under its project and not again in checks 3–5; when the project is moving and only one step is cold, that item is reported by its own check and the project is left alone. Also: widen the skill's opening line and its `Read all notes` instruction to cover `GTD/Projects/` alongside `GTD/Items/`, add stalled projects to the `description:`, and add active/stalled project counts to the health line at the top of the report (Output step 1).
+    2. **`CLAUDE.md`** — extend the **review** operation bullet so it mentions spotting stalled projects alongside stale items.
+    3. **No item and no project notes are touched.** Only the `Schema version:` marker and those two files change — and nothing is written outside `GTD/`, `Templates/GTD Item.md`, `clipper/` and `.claude/skills/`.
+
 ---
 
 ## The `/gtd-project` skill — the file the v8 migration installs

@@ -48,6 +48,12 @@ run in parallel).
 
 Projects are never cards themselves, so the board stays a list of things you can do today.
 
+The failure mode that creates is silence: one step goes cold and the project stops existing without
+anything looking wrong. So `/gtd-review` checks projects first — no movement in 14 days and it says
+so, names the step you're stuck on, and proposes one way out (a sweep, a smaller step, `waiting` on
+someone, or letting it go). Movement is worked out from what's already on disk, so there's no field
+to keep up to date.
+
 ## Coming from Notion
 
 Export your workspace as **Markdown & CSV** (all rows, everything), then **drop the zip into a
@@ -86,7 +92,7 @@ about that, and they stop and ask rather than overwrite anything that already ex
 
 ## Schema versioning
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v8**). When the
+The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v9**). When the
 schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
 mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
 
