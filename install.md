@@ -42,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 8.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 9.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -180,7 +180,7 @@ Report which of the files below already existed and how you handled each before 
 
     - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.
     - **triage** (`/gtd-triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
-    - **review** (`/gtd-review`) — the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
+    - **review** (`/gtd-review`) — the lint pass: surface stalled projects, flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
     - **project** (`/gtd-project`) — turn a multi-step outcome into a `GTD/Projects/` note with a step checklist, and keep exactly `wip` of its steps on the board. With a description it plans (or re-plans) one project; with no argument it sweeps every active project and promotes the next step of any that has room.
     - **import** — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/` by pasting the repo's `import-notion.md` prompt: it surveys the export, proposes a status/tag/field map, then writes. A capture operation — the thinking happens afterwards at triage.
     - **query** — answer questions from item notes ("what am I waiting for?", "what did I research about shoes?"). Read-only.
@@ -385,29 +385,41 @@ and fall below every real number.
 
     ---
     name: gtd-review
-    description: GTD weekly review / lint pass — flag stale items, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
+    description: GTD weekly review / lint pass — surface stalled projects, flag stale items, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
     ---
 
     # GTD review (lint pass)
 
-    A maintenance sweep over `GTD/Items/`, in the spirit of llm-wiki's lint operation. Follow the schema and rules in the vault's `CLAUDE.md`. Report first; apply only what the user confirms.
+    A maintenance sweep over `GTD/Items/` and `GTD/Projects/`, in the spirit of llm-wiki's lint operation. Follow the schema and rules in the vault's `CLAUDE.md`. Report first; apply only what the user confirms.
 
     ## Checks
 
-    Read all notes in `GTD/Items/` and evaluate (thresholds by `updated`, relative to today):
+    Read all notes in `GTD/Items/` and every project note in `GTD/Projects/`, then evaluate (item thresholds by `updated`, project thresholds by the derived last-moved date in check 1, both relative to today):
 
-    1. **Inbox backlog** — items still `inbox` after 3 days → recommend running `/gtd-triage`.
-    2. **Stale focus** — `focus` untouched > 7 days → ask: still working on it? Suggest `next`, `waiting`, or `someday`.
-    3. **Stalled waiting** — `waiting` untouched > 14 days → suggest a follow-up action (ping the other party) or unblocking.
-    4. **Old next** — `next` untouched > 30 days → honesty check: promote to `focus` or demote to `someday`.
-    5. **Someday resurface** — pick up to 5 `someday` items (oldest `updated` first) and ask whether any should become `next` or be closed.
-    6. **Archive** — `status: done` with `updated` older than 30 days → move the file to `GTD/Archive/` (plain `mv`, keep the name).
-    7. **Hygiene** — items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.
-    8. **Knowledge distillation** — for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.
+    1. **Stalled projects** — read every note in `GTD/Projects/` with `status: active` and work out when it last *moved*: the latest of the most recent `✅ YYYY-MM-DD` in its `## Steps` checklist, the `updated` of its live step item(s), and the project's own `created` (for one that has never moved at all). Nothing in **14 days** → stalled. A project already at `status: waiting` counts as stalled after **30 days** instead — being blocked on someone else is not a permanent condition. `someday` projects are skipped by definition.
+
+       Stalled projects go **first** in the report, one line each: the project, how many days since it moved, and the step it is stuck on. Then ask the one question that matters — *what is blocking it?* — and propose **exactly one** exit, the one the evidence supports, with a word on why:
+       - the live step's item is `done` and unchecked steps remain → the project only needs a sweep; say so and point at `/gtd-project`. Don't promote from here; promotion is that skill's job.
+       - the live step has sat untouched since the day it was promoted → it is probably too big to start. Offer to split it into two smaller checklist lines.
+       - the step text or the project body names another party → `status: waiting` on the project, with who and since when in the body.
+       - over 60 days and no exit fits → ask outright whether it is still wanted: `status: someday`, or `status: done` with a `Cancelled: <reason>` line.
+
+       Four exits, one proposal. Offering all four per project turns the review into another pile of decisions instead of the thing that clears them.
+
+       A step item belonging to a **stalled** project is reported here, under its project, and not a second time in checks 3–5. When the project is moving and only one of its steps is cold, the reverse holds: that item is reported by its own check and the project is left alone.
+
+    2. **Inbox backlog** — items still `inbox` after 3 days → recommend running `/gtd-triage`.
+    3. **Stale focus** — `focus` untouched > 7 days → ask: still working on it? Suggest `next`, `waiting`, or `someday`.
+    4. **Stalled waiting** — `waiting` untouched > 14 days → suggest a follow-up action (ping the other party) or unblocking.
+    5. **Old next** — `next` untouched > 30 days → honesty check: promote to `focus` or demote to `someday`.
+    6. **Someday resurface** — pick up to 5 `someday` items (oldest `updated` first) and ask whether any should become `next` or be closed.
+    7. **Archive** — `status: done` with `updated` older than 30 days → move the file to `GTD/Archive/` (plain `mv`, keep the name).
+    8. **Hygiene** — items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.
+    9. **Knowledge distillation** — for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.
 
     ## Output
 
-    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks). Focus/next/waiting counts at the top give the board's health at a glance.
+    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
     2. Ask the user to confirm all / pick exceptions.
     3. Apply confirmed changes: frontmatter edits, `mv` to Archive, bump `updated` on every touched note.
     4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.
@@ -571,6 +583,16 @@ and fall below every real number.
     5. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line for `/gtd-project`: projects live in `GTD/Projects/` and never appear as cards, only the active step does, and running `/gtd-project` with no argument advances every project that has room.
     6. **No item notes are touched.** Only the `Schema version:` marker, the two new files, and the two docs change.
 
+    ### v8 → v9 — a project that stalls gets surfaced, not forgotten
+
+    v8 gave every project exactly one visible step. The failure mode that creates is silent: the step goes cold, the card stays quiet, nothing is overdue, and the project simply stops existing. No signal fires, because the system is working as designed. That silence is precisely what this system exists to prevent, so v9 teaches `/gtd-review` to look for it.
+
+    Movement is **derived, never stored** — no new frontmatter key, no backfill, nothing that can drift. A project last moved on the latest of three dates already on disk: the most recent `✅ YYYY-MM-DD` in its `## Steps` checklist, the `updated` of its live step item(s), and its own `created`.
+
+    1. **`.claude/skills/gtd-review/SKILL.md`** — add a **Stalled projects** check as the new check **1** and renumber the existing eight to 2–9. The check: for each `GTD/Projects/` note with `status: active`, derive the last-moved date as above; stalled at **14 days** of no movement, or **30 days** for a project already at `status: waiting` (blocked is not a permanent state); `someday` projects are skipped. Stalled projects are reported **first**, one line each — project, days since it moved, the step it is stuck on — with the single question *what is blocking it?* and **exactly one** proposed exit out of four: needs a sweep (`/gtd-project` promotes the next step; the review never promotes), the step is too big (offer to split it into two checklist lines), blocked on another party (`status: waiting` with who and since when), or over 60 days with no exit fitting (ask outright: `someday`, or `done` with a `Cancelled:` line). Proposing all four per project is what turns a review into another pile of decisions, so propose one and say why. A step item of a *stalled* project is reported under its project and not again in checks 3–5; when the project is moving and only one step is cold, that item is reported by its own check and the project is left alone. Also: widen the skill's opening line and its `Read all notes` instruction to cover `GTD/Projects/` alongside `GTD/Items/`, add stalled projects to the `description:`, and add active/stalled project counts to the health line at the top of the report (Output step 1).
+    2. **`CLAUDE.md`** — extend the **review** operation bullet so it mentions spotting stalled projects alongside stale items.
+    3. **No item and no project notes are touched.** Only the `Schema version:` marker and those two files change — and nothing is written outside `GTD/`, `Templates/GTD Item.md`, `clipper/` and `.claude/skills/`.
+
 ## 9. `.claude/skills/gtd-project/SKILL.md`
 
     ---
@@ -686,7 +708,7 @@ and fall below every real number.
 - Empty folders `GTD/Items/`, `GTD/Projects/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v8): board, template, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v9): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

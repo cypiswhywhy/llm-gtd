@@ -21,7 +21,7 @@ The work here is editing prompt text so that it stays internally consistent acro
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 8**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 9**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -109,6 +109,12 @@ then re-validates, aborting otherwise.
   struck through with a reason), the item wikilinks are **name-only** so `/gtd-review` archiving an
   item doesn't break them, and a done project **stays in `GTD/Projects/`** — `GTD/Archive/` is for
   items. Project notes carry `wip`/`outcome` and never a `kanban_order`.
+- **Project movement is derived, never stored** (v9). A project's last-moved date is computed at review
+  time from three dates already on disk — the newest `✅ YYYY-MM-DD` in its checklist, the `updated` of
+  its live step item(s), and its own `created` — and `/gtd-review`'s check 1 flags 14 days of silence
+  (30 for a project already at `status: waiting`). Don't add a `last_moved` field: a stamp that some
+  paths forget to write is worse than no stamp. The check proposes **one** exit per stalled project,
+  never all four, and never promotes a step itself — promotion belongs to `/gtd-project`.
 - **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
   REPORT it to the user, never attempt it.
 
