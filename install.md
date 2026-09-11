@@ -30,9 +30,9 @@ This vault may already contain notes. **Never overwrite or delete existing conte
 
 - **`CLAUDE.md` at the root** — if it already exists, do NOT replace it. Append the schema below under a new `# LLM-GTD — vault schema` heading (or a clearly separated section), preserving everything already in the file.
 - **`README.md` at the root** — if it already exists, do NOT replace it. Append the GTD usage notes (step 8) under a new `## LLM-GTD` heading instead.
-- **`GTD/`, `Templates/GTD Item.md`, `clipper/gtd-clipper-template.json`, `.claude/skills/gtd-triage/`, `.claude/skills/gtd-review/`** — if any of these already exist, STOP and report the collision instead of overwriting. Ask me how to proceed (rename, merge, or skip). Only create the ones that are absent.
+- **`GTD/`, `Templates/GTD Item.md`, `clipper/gtd-clipper-template.json`, `.claude/skills/gtd-triage/`, `.claude/skills/gtd-review/`, `.claude/skills/gtd-update/`, `.claude/skills/gtd-project/`** — if any of these already exist, STOP and report the collision instead of overwriting. Ask me how to proceed (rename, merge, or skip). Only create the ones that are absent.
 - **`Templates/`** — this folder may already exist and hold other templates; add `GTD Item.md` alongside them, don't disturb the rest.
-- Everything the system creates lives under `GTD/` (plus the two skills and `clipper/`). Do not read, move, retag, or modify any pre-existing note outside `GTD/` at any point.
+- Everything the system creates lives under `GTD/` (plus the skills and `clipper/`). Do not read, move, retag, or modify any pre-existing note outside `GTD/` at any point.
 
 Report which of the files below already existed and how you handled each before writing anything.
 
@@ -42,13 +42,14 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 7.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 8.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
     ```
     GTD/Board.base    # kanban board (Bases + Base Board plugin) + Inbox/Stale/All views
     GTD/Items/        # one markdown note per GTD item — the ONLY place items live
+    GTD/Projects/     # one note per project — the plan for a multi-step outcome, never on the board
     GTD/Archive/      # old done items, moved here by review
     GTD/Attachments/  # files an import brought with it — created on demand
     GTD/Log.md        # append-only activity log
@@ -69,6 +70,7 @@ Report which of the files below already existed and how you handled each before 
     created: YYYY-MM-DD
     updated: YYYY-MM-DD   # bump on EVERY meaningful change
     source:         # URL for web clips; empty otherwise
+    project:        # OPTIONAL — "[[Project name]]" when this item is a step of a project
     kanban_order: -1786636800000   # board sort key — stamped at creation, then hands off to the plugin
     ---
     ```
@@ -105,23 +107,93 @@ Report which of the files below already existed and how you handled each before 
 
     To complete an item on the board, **drag its card to the `done` column** — that sets `status: done`. (Dragging between any two columns is how the board rewrites `status`.)
 
+    An item that is a step of a project carries `project: "[[Project name]]"` — a name-only wikilink to
+    its note in `GTD/Projects/`. The key is **absent on every item that isn't a project step**: neither
+    the Templater template nor the web clipper writes it, so an ordinary capture never has it, and only
+    `/gtd-project` adds it.
+
+    ## Projects
+
+    A **project** is an outcome that needs more than one action — "buy a flat", "get a tattoo", "plan
+    the holiday", "quit smoking". Projects live in `GTD/Projects/`, one note each, and they are **not
+    items**: they never appear on the board, they are never dragged, and they carry no `kanban_order`.
+
+    The split exists because a project's plan must not become twenty cards. The plan lives as a
+    checklist inside the project note; only the **active step** exists as a real item in `GTD/Items/`.
+    Every other step is plain text until its turn comes.
+
+    Project note frontmatter:
+
+    ```yaml
+    ---
+    status: active   # active | someday | waiting | done — projects have their own vocabulary
+    tags: []
+    created: YYYY-MM-DD
+    updated: YYYY-MM-DD
+    wip: 1           # how many of this project's steps may sit on the board at once
+    outcome: "one sentence — how I'll know this project is finished"
+    ---
+    ```
+
+    `status: done` is still the only completion signal. The vocabulary differs from an item's because a
+    project is never on the board: `active` (being worked), `someday` (kept, no timeline), `waiting`
+    (blocked on another party), `done` (finished, or abandoned with a `Cancelled: <reason>` line).
+
+    `wip` is 1 unless the human raises it. Raise it only for tracks that genuinely run side by side (a
+    renovation where choosing a contractor and choosing materials really are parallel) — never to get
+    more done at once, which is how a project turns back into twenty cards.
+
+    Body shape:
+
+    ```markdown
+    ## Outcome
+    One sentence, the same one as in the frontmatter.
+
+    ## Steps
+    - [x] Collect 5 reference photos ~10m → [[Collect tattoo references]] ✅ 2026-09-10
+    - [ ] Call 3 studios for a quote ~20m → [[Call 3 tattoo studios]]
+    - [ ] Pick a studio and pay the deposit ~30m
+    - [ ] Book the date ~5m
+
+    ## Notes
+    Decisions, links, research — whatever the project accumulates.
+    ```
+
+    Every step is written as a physical action — a verb the human can start without deciding anything
+    first — with a rough estimate appended (`~10m`, `~45m`, `~2h`). "Research studios" is not a step;
+    "open Instagram, search #tattoowarsaw, paste 3 profiles into the project note ~10m" is. A step
+    estimated at more than about two hours is really two steps.
+
+    Three rules keep the checklist and the items from drifting apart:
+
+    1. **The checklist is the plan; items are the work.** A step becomes a note in `GTD/Items/` only
+       when it is promoted, and promotion appends `→ [[Item name]]` to its checklist line.
+    2. **A checklist line is never deleted.** Finished → `- [x]` plus `✅ YYYY-MM-DD`. Abandoned →
+       `- [x] ~~text~~ (cancelled: reason)`. The checklist is the project's history.
+    3. **Link by note name, never by path** (`[[Call 3 tattoo studios]]`). Review moves done items into
+       `GTD/Archive/`; a name-only wikilink survives that move, a path-based one breaks.
+
+    A done project stays in `GTD/Projects/` — it is the record of how the thing got done. Projects are
+    never archived; `GTD/Archive/` is for items.
+
     ## Operations
 
     - **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.
     - **triage** (`/gtd-triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
     - **review** (`/gtd-review`) — the lint pass: flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
+    - **project** (`/gtd-project`) — turn a multi-step outcome into a `GTD/Projects/` note with a step checklist, and keep exactly `wip` of its steps on the board. With a description it plans (or re-plans) one project; with no argument it sweeps every active project and promotes the next step of any that has room.
     - **import** — bulk-load an existing system (a Notion export, a CSV) into `GTD/Items/` by pasting the repo's `import-notion.md` prompt: it surveys the export, proposes a status/tag/field map, then writes. A capture operation — the thinking happens afterwards at triage.
     - **query** — answer questions from item notes ("what am I waiting for?", "what did I research about shoes?"). Read-only.
 
     ## Rules for the agent
 
-    1. **Never delete** an item note. Cancelled → `status: done` with a `Cancelled: <reason>` line in the body. Old done items → move to `GTD/Archive/`.
+    1. **Never delete** an item note or a project note. Cancelled → `status: done` with a `Cancelled: <reason>` line in the body. Old done items → move to `GTD/Archive/`.
     2. **Propose, then apply.** Triage and review present a batch proposal and wait for the human's confirmation before writing (the human decides; you file).
     3. **Bump `updated`** (YYYY-MM-DD) on every note you modify.
     4. **Log every operation** in `GTD/Log.md`: append-only, newest at the bottom, format `YYYY-MM-DD HH:MM [op] message`. Never rewrite existing lines.
     5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.
     6. **Don't touch** `.obsidian/` config or `GTD/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`.
-    7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. `kanban_order` is the one key with split ownership: stamp it on an item you create (minus the creation timestamp in milliseconds), and preserve any value you find untouched.
+    7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. Two exceptions are part of the schema, not deviations from it: `project` appears only on an item that is a project step, and a project note carries its own keys (`wip`, `outcome`, and no `kanban_order`). `kanban_order` is the one key with split ownership: stamp it on an item you create (minus the creation timestamp in milliseconds), and preserve any value you find untouched.
 
 ## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
@@ -243,7 +315,7 @@ Card order within a column therefore comes from each note's `kanban_order` (newe
 
     `YYYY-MM-DD HH:MM [op] message`
 
-    Ops: `[capture]` `[triage]` `[review]` `[archive]` `[import]` `[migrate]`
+    Ops: `[capture]` `[triage]` `[review]` `[project]` `[archive]` `[import]` `[migrate]`
 
     ---
 
@@ -412,8 +484,8 @@ and fall below every real number.
 
     1. **`GTD/Board.base`** — in the **kanban view's** `order:` list, delete the `- file.name` line (keep `- tags`). The card already shows the note name as its title, so `file.name` there rendered it a second time. Do NOT touch the table views' `order:` lists — those still need `file.name` as a column.
     2. **`.claude/skills/gtd-triage/SKILL.md`** — add frontmatter backfill when processing the inbox: if an item is missing `created`, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. Hand-made notes then self-heal to the schema at triage time.
-    3. **`.obsidian/snippets/gtd-kanban.css`** — create it containing `.obk-card-property-label { display: none; }`, then enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, don't overwrite). This hides the property-name labels so cards read `tag1 tag2` instead of `Tags: tag1 tag2` — the `kanban-bases-view` plugin always draws the label, so CSS is the only way. **This is the one place llm-gtd writes outside `GTD/`.** After applying, tell the user to reload Obsidian (Ctrl/Cmd+R or reopen the vault) for it to take effect, and warn that if Obsidian was running during the migration it may rewrite `appearance.json` on exit — in which case the snippet just needs enabling once in Settings → Appearance → CSS snippets.
-    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`; add `.obsidian/snippets/gtd-kanban.css` to the Layout as the one file written outside `GTD/`; and nuance the "don't touch `.obsidian/`" rule so it allows creating/enabling this snippet during `/gtd-update`.
+    3. **`.obsidian/snippets/gtd-kanban.css`** — **skip this step; it is retired.** v3 created a CSS snippet here to hide the old kanban plugin's property labels. v6 replaced that plugin with `Base Board`, which draws no labels, so the snippet is inert and llm-gtd writes nothing outside `GTD/` again. A vault migrating through v3 today must not create it.
+    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`. (v3 also put the snippet in the Layout and loosened the `.obsidian/` rule for it; both retire with step 3 — leave rule 6 alone.)
 
     Manual step to REPORT to the user (it lives in `.obsidian/` plugin config and can't be scripted reliably — tell the user, don't attempt it):
 
@@ -484,12 +556,134 @@ and fall below every real number.
 
     - **Re-import the clipper template:** Web Clipper extension → Settings → Templates → import `clipper/gtd-clipper-template.json` again (or add the `kanban_order` property to the existing template by hand). Until then, clipped items keep arriving without a sort key and land at the bottom of the inbox column until the next `/gtd-triage` backfills them.
 
-## 9. Also create
+    ### v7 → v8 — projects: one outcome, one next step
 
-- Empty folders `GTD/Items/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
+    Outcomes that need many actions ("buy a flat", "renovate the kitchen", "plan the holiday", "quit smoking") had nowhere to live. Written as a single item they never started, because the card named a result instead of an action. Broken into cards by hand they buried the board — twenty obligations where there should be one. Both failures hit hardest for the people this system is for.
+
+    v8 adds a home for the plan that is deliberately **not** the board: `GTD/Projects/`, one note per outcome, with the steps as a checklist and only the active step promoted to a real item. The new `/gtd-project` skill plans a project (`/gtd-project renovate the kitchen`) and, with no argument, sweeps every active project and promotes the next step of any that has room.
+
+    Nothing existing changes. No item frontmatter is rewritten, no `updated` date on an item moves, `GTD/Board.base` is untouched (projects live outside `GTD/Items/`, so the board's filter already excludes them), the Templater template and the clipper template are untouched — so there is **no clipper re-import and no manual step** in this migration.
+
+    1. **`GTD/Projects/`** — create the folder.
+    2. **`.claude/skills/gtd-project/SKILL.md`** — create it with the `gtd-project` skill, **verbatim**. Its full text is not repeated here: it is section 9 of `install.md`, and the `## The /gtd-project skill` section of the canonical `update.md` — the file `CANONICAL_SOURCE` points at, which the self-check has already read by this point. Take it from there. If the canonical source could not be read on this run, apply nothing for v8 and say so: a whole new skill file cannot be reconstructed from a changelog entry, and half a v8 is worse than none. If the path already exists, STOP and report the collision instead of overwriting.
+    3. **`GTD/Log.md`** — add `[project]` to the `Ops:` line in the header.
+    4. **`CLAUDE.md`** — add `GTD/Projects/     # one note per project — the plan for a multi-step outcome, never on the board` to the Layout block; add an optional `project:` key to the item-schema YAML with a note that it appears only on a project step and that neither the template nor the clipper writes it; add a `## Projects` section holding the project-note frontmatter (`status: active|someday|waiting|done` — projects have their own vocabulary because they are never on the board — plus `wip: 1`, `outcome:`, and no `kanban_order`), the `## Outcome` / `## Steps` / `## Notes` body shape with an example checklist, the physical-action-plus-estimate rule for step text, the three anti-drift rules (the checklist is the plan and only a promoted step becomes an item; a checklist line is never deleted; wikilinks are name-only so archiving an item doesn't break them), and the note that a done project stays in `GTD/Projects/` and is never archived; add a **project** bullet to Operations; widen rule 1 to cover project notes; and amend rule 7 so `project`, `wip` and `outcome` read as part of the schema rather than stray keys.
+    5. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line for `/gtd-project`: projects live in `GTD/Projects/` and never appear as cards, only the active step does, and running `/gtd-project` with no argument advances every project that has room.
+    6. **No item notes are touched.** Only the `Schema version:` marker, the two new files, and the two docs change.
+
+## 9. `.claude/skills/gtd-project/SKILL.md`
+
+    ---
+    name: gtd-project
+    description: Plan a multi-step project and keep only its next action on the board. Use when the user names an outcome too big for one item (a renovation, a house purchase, a holiday, learning a skill, quitting a habit), asks to break a project down, or asks what the next step of a project is. With no argument it sweeps every active project and promotes the next step of any that has room.
+    ---
+
+    # GTD projects — one outcome, one next step
+
+    A project is an outcome that needs more than one action. Its plan lives as a checklist in a
+    `GTD/Projects/` note; only the active step exists as an item in `GTD/Items/`. Follow the schema and
+    the rules in the vault's `CLAUDE.md` — in particular the `## Projects` section and the
+    propose-then-apply rule.
+
+    Why it works this way: a twenty-step plan rendered as twenty cards is unusable. It reads as twenty
+    separate obligations, the board stops being a place where anything gets decided, and the project
+    stalls precisely because all of it is visible at once. **One visible step per project is the whole
+    feature** — never promote more steps than the project's `wip`, however reasonable it seems.
+
+    ## Mode A — plan a project (`/gtd-project <description>`)
+
+    First look in `GTD/Projects/` for a note that matches the description. If one is there, this is a
+    **re-plan**: load it, skip to step 3, and add or rewrite **unchecked steps only** — never edit a
+    `- [x]` line.
+
+    1. **Agree the outcome.** Ask for one sentence saying how the user will know the project is
+       finished. Push back on outcomes nobody can observe: "get fit" → "run 5 km without stopping".
+       That sentence becomes `outcome:` and the `## Outcome` body section.
+
+    2. **Ask only what you can't work out yourself.** At most three questions, and only ones that
+       change the plan — a deadline, a budget, a constraint that deletes whole steps. Don't interview.
+
+    3. **Draft the steps** — 5 to 12, in order, each one:
+       - a **physical action** beginning with a verb, startable without deciding anything first.
+         "Research studios" is not a step; "open Instagram, search #tattoowarsaw, paste 3 profiles into
+         the project note" is.
+       - **one sitting**, with a rough estimate appended as `~10m`, `~45m`, `~2h`. Anything over about
+         two hours is really two steps — split it.
+       - a **decision** where a decision is what's needed ("pick a studio and pay the deposit ~30m").
+         An unmade choice blocks a project exactly as well as an undone task.
+       If the project has an external date (a holiday, a deadline), order the steps backwards from it
+       and say which step has to start when.
+
+    4. **Propose.** Show the outcome, the numbered steps with estimates, and the total. Ask the user to
+       confirm, cut, or reorder. Wait — write nothing yet.
+
+    5. **Apply on confirmation:**
+       - Create `GTD/Projects/<Project name>.md` with the project frontmatter from `CLAUDE.md`
+         (`status: active`, `wip: 1`, today's `created`/`updated`, the `outcome`, and tags reused from
+         the vault's existing vocabulary) and the `## Outcome` / `## Steps` / `## Notes` body. Create
+         `GTD/Projects/` if it doesn't exist. If the note already exists and this was not a re-plan,
+         STOP and report the collision — never overwrite.
+       - Promote the **first step only** (see Promotion below).
+       - Append to `GTD/Log.md`: `YYYY-MM-DD HH:MM [project] "<Project>" created (N steps) → "<first step>"`.
+
+    6. **Report** in three lines: the outcome, the first step, and how long that step takes. Nothing
+       else — the plan is in the note, and the user only has to do one thing.
+
+    ## Mode B — sweep (`/gtd-project` with no argument)
+
+    1. **Collect** every note in `GTD/Projects/` with `status: active`.
+    2. **Count each project's live steps**: items in `GTD/Items/` whose `project` points at that project
+       and whose `status` is not `done`.
+    3. **Per project, work out what's needed:**
+       - A promoted step's item is now `status: done` → tick its checklist line first: `- [x]` plus
+         `✅ ` and the item's `updated` date.
+       - Live steps below `wip`, unchecked steps remaining → propose promoting the first unchecked one.
+       - Live steps at `wip` → nothing to propose; just name the step already on the board.
+       - No unchecked steps left → propose closing the project (`status: done`). If its `## Notes` hold
+         research worth keeping, offer the distillation from `/gtd-review`'s knowledge check.
+       - The live step's item untouched for more than 14 days → say so and ask whether the step is too
+         big. Offer to split it into two smaller checklist lines and promote the first.
+    4. **Propose one table** covering all projects: project, step just completed, proposed next step,
+       estimate. Ask the user to confirm all / pick exceptions.
+    5. **Apply** confirmed promotions, ticks and closures. Bump `updated` on every project note whose
+       content changed. Append one `[project]` line per project to `GTD/Log.md`.
+    6. **Report.** Lead with the promoted steps as a short list the user can act on today. Then one line
+       each for any `waiting` projects (blocked, and on whom) and any `someday` projects, so a stalled
+       project can't hide — but propose nothing for those.
+
+    ## Promotion — the one operation both modes share
+
+    1. Create the item note in `GTD/Items/`, named after the step text with the `~estimate` stripped,
+       carrying the item frontmatter from `CLAUDE.md`: `status: next`, today's `created`/`updated`,
+       `tags` inherited from the project, empty `source:`, `project: "[[<Project name>]]"`, and
+       `kanban_order` set to minus the current time in milliseconds.
+    2. `status: next`, not `focus`: `focus` is the human's own shelf for what they are doing today, and
+       a promotion has no business filling it. The user drags the card over when they pick it up.
+    3. Body: the step text in full, its estimate, and a `Part of [[<Project name>]]` line. Copy across
+       whatever detail from the project's `## Notes` the step needs — the point is that the card can be
+       acted on without opening the project note.
+    4. Append `→ [[<Item name>]]` to that step's checklist line in the project note. Link by **note
+       name, never by path**: review moves done items into `GTD/Archive/` and a name-only wikilink
+       survives the move.
+    5. If an item of that name already exists in `GTD/Items/` or `GTD/Archive/`, don't collide
+       silently — propose a distinguishing name (append the project, e.g. `Call 3 studios (Tattoo)`).
+    6. Never promote a step already marked `- [x]`, and never take a project above its `wip`.
+
+    ## Guard clauses
+
+    - **Never delete** a project note or a checklist line. An abandoned project is `status: done` with a
+      `Cancelled: <reason>` line in the body; an abandoned step is `- [x] ~~text~~ (cancelled: reason)`.
+    - A done project **stays in `GTD/Projects/`** — it records how the thing got done. Projects are
+      never archived; `GTD/Archive/` is for items.
+    - Never write a `kanban_order` into a project note: projects are not on the board.
+    - Never touch `GTD/Board.base`, `.obsidian/`, or any note outside `GTD/`.
+
+## 10. Also create
+
+- Empty folders `GTD/Items/`, `GTD/Projects/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
-- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v7): board, template, schema, skills created.`
+- A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v8): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

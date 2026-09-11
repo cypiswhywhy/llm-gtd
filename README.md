@@ -14,7 +14,7 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 
 | File | What it's for |
 |---|---|
-| [`install.md`](install.md) | The installer prompt. Sets up a fresh vault — schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-update` skills. Safe on vaults that already have notes. |
+| [`install.md`](install.md) | The installer prompt. Sets up a fresh vault — schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-project`, `/gtd-update` skills. Safe on vaults that already have notes. |
 | [`update.md`](update.md) | The migration prompt. Brings an already-installed vault up to the current schema version, non-destructively. Also the canonical home of the migration changelog. |
 | [`import-notion.md`](import-notion.md) | The import prompt. Bulk-loads an existing system — a Notion **Markdown & CSV** export, or a plain CSV — onto the board. Paste-in only: importing happens once per vault, so there's no skill to install. |
 | [`install.html`](install.html) | A polished single-page version of `install.md` — pitch, setup steps, and a copy-button prompt block. Open it in a browser, or paste it into an Artifact for a shareable link. |
@@ -31,6 +31,22 @@ Code at your vault's root and it builds (or migrates) the whole system in place.
 
 Day to day: `/gtd-triage` clears the inbox, `/gtd-review` is the weekly lint pass,
 `/gtd-update` pulls in schema changes.
+
+## Projects
+
+Some things don't fit on one card. "Buy a flat", "renovate the kitchen", "plan the holiday" —
+written as a single item they never start, because the card names a result instead of an
+action; broken into cards by hand they bury the board under twenty obligations.
+
+`/gtd-project <description>` agrees what *finished* means, then breaks the outcome into steps
+small enough to actually begin — each one a physical action with a time estimate, decisions
+included as steps of their own. The plan lives as a checklist in a `GTD/Projects/` note, and
+**only the active step becomes a card**. Run `/gtd-project` with no argument and it sweeps
+every project, ticks off what you finished, and promotes the next step of each one that has
+room (one at a time by default — a project can raise its own `wip` when two tracks genuinely
+run in parallel).
+
+Projects are never cards themselves, so the board stays a list of things you can do today.
 
 ## Coming from Notion
 
@@ -56,12 +72,13 @@ offers to add it.
 CLAUDE.md               # the schema — the contract between you and the agent
 GTD/Board.base          # kanban board + Inbox / Stale / All items views
 GTD/Items/              # one note per item — the only place items live
+GTD/Projects/           # one note per project — the plan, never a card
 GTD/Archive/            # old done items
 GTD/Attachments/        # files an import brought with it (on demand)
 GTD/Log.md              # append-only activity log
 Templates/GTD Item.md   # Templater template for new items
 clipper/                # Obsidian Web Clipper template
-.claude/skills/         # gtd-triage, gtd-review, gtd-update
+.claude/skills/         # gtd-triage, gtd-review, gtd-project, gtd-update
 ```
 
 Nothing else in the vault is read, moved, retagged, or modified — the prompts are explicit
@@ -69,7 +86,7 @@ about that, and they stop and ask rather than overwrite anything that already ex
 
 ## Schema versioning
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v7**). When the
+The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v8**). When the
 schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
 mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
 

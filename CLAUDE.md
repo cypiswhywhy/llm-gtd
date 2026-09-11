@@ -8,20 +8,20 @@ There is no code, no build, no test suite, no dependencies. The repo is **three 
 the root that are really one artifact in three renderings** (plus one standalone extra) — a prompt
 that a user pastes into Claude Code at the root of their Obsidian vault, which then writes the whole
 GTD system (schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`,
-`/gtd-update` skills) into that vault. See `README.md` for the user-facing pitch.
+`/gtd-project`, `/gtd-update` skills) into that vault. See `README.md` for the user-facing pitch.
 
 The work here is editing prompt text so that it stays internally consistent across all three files.
 
 | File | Role |
 |---|---|
-| `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 21 → 383). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 "Also create". |
-| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8. |
+| `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 23 → 690). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 gtd-project skill · 10 "Also create". |
+| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the full `/gtd-project` skill text (v8 installs a whole new file, which a changelog entry can't carry — see below). |
 | `import-notion.md` | **Outside the three-way sync, and deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault. Nothing fetches or embeds it, nothing version-stamps it — edit it freely, no mirroring, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because `/gtd-update` only refreshes on a schema bump, so edits never reached vaults that had already installed it. Importing happens once per vault, which is the whole argument for a prompt over a skill. |
 | `install.html` | Standalone single-page version. The entire installer prompt is a **JSON string** inside `<script type="application/json" id="prompt-data">`, injected into `#promptcode` at runtime. Not byte-identical to `install.md`: its tail folds the manual-setup steps into a final "One thing this prompt can't do for you" paragraph that `install.md` keeps as its own section. |
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 7**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 8**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -29,9 +29,18 @@ kept identical**:
 2. `update.md`'s embedded `/gtd-update` skill
 3. the `install.html` `#prompt-data` JSON mirror
 
-Also bump the `Schema version:` marker in `install.md` §1, in the `install.html` JSON, and in §9's
+Also bump the `Schema version:` marker in `install.md` §1, in the `install.html` JSON, and in §10's
 final `[capture] Vault initialized (schema vN)` log line. `update.md`'s "Adding a future migration"
 section restates this.
+
+A migration that installs a **whole new skill file** needs one thing more, because a changelog entry
+describes edits and cannot carry a hundred lines of new file. Print the skill once per rendering — its
+own numbered section in `install.md`, its own `## The /<name> skill` section inside `update.md`'s
+prompt, the mirror in `install.html` — and have the changelog entry point at those instead of
+repeating the text a fourth time. v8 and `/gtd-project` are the worked example. The consequence is
+deliberate and spelled out in that entry: since an installed `/gtd-update` skill carries only the
+changelog, v8 can only be applied when the canonical source was actually read, and refuses rather
+than writing half of itself offline.
 
 Check sync after any edit:
 
@@ -65,6 +74,8 @@ then re-validates, aborting otherwise.
   carry one exception, `.obsidian/snippets/gtd-kanban.css`; **v6 removed it** — the `Base Board` plugin
   draws no property labels, so there is nothing left to hide with CSS. The v6 migration deliberately
   leaves the now-inert snippet on disk in already-installed vaults rather than deleting a user file.
+  v8 went one step further and retired v3's *creation* step as well, so a vault migrating through v3
+  today is told to skip it: **no migration path writes outside `GTD/` any more.**
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
   or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.
 - **`status` is the only completion signal** (`inbox|focus|next|someday|waiting|done`). v2 deliberately
@@ -88,6 +99,16 @@ then re-validates, aborting otherwise.
   string keys. The generated `CLAUDE.md` must say stamp-on-create, never re-stamp, never bump
   `updated` for it; it is not a second completion signal. Upstream declined a sort-by-property option
   ([issue #38](https://github.com/mderazon/obsidian-base-board/issues/38)) — don't re-litigate it.
+- **Projects are not items and never become cards.** A project is a note in `GTD/Projects/` holding
+  the plan as a markdown checklist; the board's filter is `file.inFolder("GTD/Items")`, so projects
+  are excluded by construction — do not add a project view, a `type:` discriminator, or a filter to
+  `Board.base` to compensate. Only the **active step** of a project exists as an item (`status: next`,
+  carrying `project: "[[Project]]"`), at most `wip` of them at a time (default 1). That one-card limit
+  is the entire point of the feature, not a conservative default to relax later. Three shapes are easy
+  to get wrong: a checklist line is **never deleted** (finished → `- [x]` + `✅ date`, abandoned →
+  struck through with a reason), the item wikilinks are **name-only** so `/gtd-review` archiving an
+  item doesn't break them, and a done project **stays in `GTD/Projects/`** — `GTD/Archive/` is for
+  items. Project notes carry `wip`/`outcome` and never a `kanban_order`.
 - **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
   REPORT it to the user, never attempt it.
 

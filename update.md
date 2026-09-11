@@ -27,7 +27,7 @@ The vault's current schema version is the integer after `Schema version:` in the
 4. **Bump the marker** in `CLAUDE.md` to the target version (add the `Schema version:` line if it was absent).
 5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** the skill's `CANONICAL_SOURCE:` line already ships pointing at the repo's public raw `update.md` — keep that value as-is unless I tell you otherwise (I'd want a local path like `~/devel/llm-gtd/update.md` only if I'm offline or want unpushed migrations to count). This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
 6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
-7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below (create it if missing).
+7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below, and that `.claude/skills/gtd-project/SKILL.md` exists (both are printed below; create either if it's missing).
 
 ## The `/gtd-update` skill — the source of truth for migrations
 
@@ -102,8 +102,8 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
 
     1. **`GTD/Board.base`** — in the **kanban view's** `order:` list, delete the `- file.name` line (keep `- tags`). The card already shows the note name as its title, so `file.name` there rendered it a second time. Do NOT touch the table views' `order:` lists — those still need `file.name` as a column.
     2. **`.claude/skills/gtd-triage/SKILL.md`** — add frontmatter backfill when processing the inbox: if an item is missing `created`, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`. Hand-made notes then self-heal to the schema at triage time.
-    3. **`.obsidian/snippets/gtd-kanban.css`** — create it containing `.obk-card-property-label { display: none; }`, then enable it by adding `"gtd-kanban"` to the `enabledCssSnippets` array in `.obsidian/appearance.json` (create the file and/or the array if absent; **preserve every other key and any snippets already listed** — read-modify-write, don't overwrite). This hides the property-name labels so cards read `tag1 tag2` instead of `Tags: tag1 tag2` — the `kanban-bases-view` plugin always draws the label, so CSS is the only way. **This is the one place llm-gtd writes outside `GTD/`.** After applying, tell the user to reload Obsidian (Ctrl/Cmd+R or reopen the vault) for it to take effect, and warn that if Obsidian was running during the migration it may rewrite `appearance.json` on exit — in which case the snippet just needs enabling once in Settings → Appearance → CSS snippets.
-    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`; add `.obsidian/snippets/gtd-kanban.css` to the Layout as the one file written outside `GTD/`; and nuance the "don't touch `.obsidian/`" rule so it allows creating/enabling this snippet during `/gtd-update`.
+    3. **`.obsidian/snippets/gtd-kanban.css`** — **skip this step; it is retired.** v3 created a CSS snippet here to hide the old kanban plugin's property labels. v6 replaced that plugin with `Base Board`, which draws no labels, so the snippet is inert and llm-gtd writes nothing outside `GTD/` again. A vault migrating through v3 today must not create it.
+    4. **`CLAUDE.md`** — note in the capture operation that new notes get frontmatter from the Templater folder-template (manual step below) and that triage backfills any item missing `created`/`source`. (v3 also put the snippet in the Layout and loosened the `.obsidian/` rule for it; both retire with step 3 — leave rule 6 alone.)
 
     Manual step to REPORT to the user (it lives in `.obsidian/` plugin config and can't be scripted reliably — tell the user, don't attempt it):
 
@@ -174,6 +174,132 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
 
     - **Re-import the clipper template:** Web Clipper extension → Settings → Templates → import `clipper/gtd-clipper-template.json` again (or add the `kanban_order` property to the existing template by hand). Until then, clipped items keep arriving without a sort key and land at the bottom of the inbox column until the next `/gtd-triage` backfills them.
 
+    ### v7 → v8 — projects: one outcome, one next step
+
+    Outcomes that need many actions ("buy a flat", "renovate the kitchen", "plan the holiday", "quit smoking") had nowhere to live. Written as a single item they never started, because the card named a result instead of an action. Broken into cards by hand they buried the board — twenty obligations where there should be one. Both failures hit hardest for the people this system is for.
+
+    v8 adds a home for the plan that is deliberately **not** the board: `GTD/Projects/`, one note per outcome, with the steps as a checklist and only the active step promoted to a real item. The new `/gtd-project` skill plans a project (`/gtd-project renovate the kitchen`) and, with no argument, sweeps every active project and promotes the next step of any that has room.
+
+    Nothing existing changes. No item frontmatter is rewritten, no `updated` date on an item moves, `GTD/Board.base` is untouched (projects live outside `GTD/Items/`, so the board's filter already excludes them), the Templater template and the clipper template are untouched — so there is **no clipper re-import and no manual step** in this migration.
+
+    1. **`GTD/Projects/`** — create the folder.
+    2. **`.claude/skills/gtd-project/SKILL.md`** — create it with the `gtd-project` skill, **verbatim**. Its full text is not repeated here: it is section 9 of `install.md`, and the `## The /gtd-project skill` section of the canonical `update.md` — the file `CANONICAL_SOURCE` points at, which the self-check has already read by this point. Take it from there. If the canonical source could not be read on this run, apply nothing for v8 and say so: a whole new skill file cannot be reconstructed from a changelog entry, and half a v8 is worse than none. If the path already exists, STOP and report the collision instead of overwriting.
+    3. **`GTD/Log.md`** — add `[project]` to the `Ops:` line in the header.
+    4. **`CLAUDE.md`** — add `GTD/Projects/     # one note per project — the plan for a multi-step outcome, never on the board` to the Layout block; add an optional `project:` key to the item-schema YAML with a note that it appears only on a project step and that neither the template nor the clipper writes it; add a `## Projects` section holding the project-note frontmatter (`status: active|someday|waiting|done` — projects have their own vocabulary because they are never on the board — plus `wip: 1`, `outcome:`, and no `kanban_order`), the `## Outcome` / `## Steps` / `## Notes` body shape with an example checklist, the physical-action-plus-estimate rule for step text, the three anti-drift rules (the checklist is the plan and only a promoted step becomes an item; a checklist line is never deleted; wikilinks are name-only so archiving an item doesn't break them), and the note that a done project stays in `GTD/Projects/` and is never archived; add a **project** bullet to Operations; widen rule 1 to cover project notes; and amend rule 7 so `project`, `wip` and `outcome` read as part of the schema rather than stray keys.
+    5. **`README.md`** — if the vault has an `## LLM-GTD` section, add a line for `/gtd-project`: projects live in `GTD/Projects/` and never appear as cards, only the active step does, and running `/gtd-project` with no argument advances every project that has room.
+    6. **No item notes are touched.** Only the `Schema version:` marker, the two new files, and the two docs change.
+
+---
+
+## The `/gtd-project` skill — the file the v8 migration installs
+
+v8 adds a second skill to the vault. A changelog entry can only describe *edits*, so a brand-new file has to be printed in full somewhere — that's this section. When v8 is one of the migrations being applied, write the following verbatim to `.claude/skills/gtd-project/SKILL.md`. If that path already exists, STOP and report the collision instead of overwriting it.
+
+    ---
+    name: gtd-project
+    description: Plan a multi-step project and keep only its next action on the board. Use when the user names an outcome too big for one item (a renovation, a house purchase, a holiday, learning a skill, quitting a habit), asks to break a project down, or asks what the next step of a project is. With no argument it sweeps every active project and promotes the next step of any that has room.
+    ---
+
+    # GTD projects — one outcome, one next step
+
+    A project is an outcome that needs more than one action. Its plan lives as a checklist in a
+    `GTD/Projects/` note; only the active step exists as an item in `GTD/Items/`. Follow the schema and
+    the rules in the vault's `CLAUDE.md` — in particular the `## Projects` section and the
+    propose-then-apply rule.
+
+    Why it works this way: a twenty-step plan rendered as twenty cards is unusable. It reads as twenty
+    separate obligations, the board stops being a place where anything gets decided, and the project
+    stalls precisely because all of it is visible at once. **One visible step per project is the whole
+    feature** — never promote more steps than the project's `wip`, however reasonable it seems.
+
+    ## Mode A — plan a project (`/gtd-project <description>`)
+
+    First look in `GTD/Projects/` for a note that matches the description. If one is there, this is a
+    **re-plan**: load it, skip to step 3, and add or rewrite **unchecked steps only** — never edit a
+    `- [x]` line.
+
+    1. **Agree the outcome.** Ask for one sentence saying how the user will know the project is
+       finished. Push back on outcomes nobody can observe: "get fit" → "run 5 km without stopping".
+       That sentence becomes `outcome:` and the `## Outcome` body section.
+
+    2. **Ask only what you can't work out yourself.** At most three questions, and only ones that
+       change the plan — a deadline, a budget, a constraint that deletes whole steps. Don't interview.
+
+    3. **Draft the steps** — 5 to 12, in order, each one:
+       - a **physical action** beginning with a verb, startable without deciding anything first.
+         "Research studios" is not a step; "open Instagram, search #tattoowarsaw, paste 3 profiles into
+         the project note" is.
+       - **one sitting**, with a rough estimate appended as `~10m`, `~45m`, `~2h`. Anything over about
+         two hours is really two steps — split it.
+       - a **decision** where a decision is what's needed ("pick a studio and pay the deposit ~30m").
+         An unmade choice blocks a project exactly as well as an undone task.
+       If the project has an external date (a holiday, a deadline), order the steps backwards from it
+       and say which step has to start when.
+
+    4. **Propose.** Show the outcome, the numbered steps with estimates, and the total. Ask the user to
+       confirm, cut, or reorder. Wait — write nothing yet.
+
+    5. **Apply on confirmation:**
+       - Create `GTD/Projects/<Project name>.md` with the project frontmatter from `CLAUDE.md`
+         (`status: active`, `wip: 1`, today's `created`/`updated`, the `outcome`, and tags reused from
+         the vault's existing vocabulary) and the `## Outcome` / `## Steps` / `## Notes` body. Create
+         `GTD/Projects/` if it doesn't exist. If the note already exists and this was not a re-plan,
+         STOP and report the collision — never overwrite.
+       - Promote the **first step only** (see Promotion below).
+       - Append to `GTD/Log.md`: `YYYY-MM-DD HH:MM [project] "<Project>" created (N steps) → "<first step>"`.
+
+    6. **Report** in three lines: the outcome, the first step, and how long that step takes. Nothing
+       else — the plan is in the note, and the user only has to do one thing.
+
+    ## Mode B — sweep (`/gtd-project` with no argument)
+
+    1. **Collect** every note in `GTD/Projects/` with `status: active`.
+    2. **Count each project's live steps**: items in `GTD/Items/` whose `project` points at that project
+       and whose `status` is not `done`.
+    3. **Per project, work out what's needed:**
+       - A promoted step's item is now `status: done` → tick its checklist line first: `- [x]` plus
+         `✅ ` and the item's `updated` date.
+       - Live steps below `wip`, unchecked steps remaining → propose promoting the first unchecked one.
+       - Live steps at `wip` → nothing to propose; just name the step already on the board.
+       - No unchecked steps left → propose closing the project (`status: done`). If its `## Notes` hold
+         research worth keeping, offer the distillation from `/gtd-review`'s knowledge check.
+       - The live step's item untouched for more than 14 days → say so and ask whether the step is too
+         big. Offer to split it into two smaller checklist lines and promote the first.
+    4. **Propose one table** covering all projects: project, step just completed, proposed next step,
+       estimate. Ask the user to confirm all / pick exceptions.
+    5. **Apply** confirmed promotions, ticks and closures. Bump `updated` on every project note whose
+       content changed. Append one `[project]` line per project to `GTD/Log.md`.
+    6. **Report.** Lead with the promoted steps as a short list the user can act on today. Then one line
+       each for any `waiting` projects (blocked, and on whom) and any `someday` projects, so a stalled
+       project can't hide — but propose nothing for those.
+
+    ## Promotion — the one operation both modes share
+
+    1. Create the item note in `GTD/Items/`, named after the step text with the `~estimate` stripped,
+       carrying the item frontmatter from `CLAUDE.md`: `status: next`, today's `created`/`updated`,
+       `tags` inherited from the project, empty `source:`, `project: "[[<Project name>]]"`, and
+       `kanban_order` set to minus the current time in milliseconds.
+    2. `status: next`, not `focus`: `focus` is the human's own shelf for what they are doing today, and
+       a promotion has no business filling it. The user drags the card over when they pick it up.
+    3. Body: the step text in full, its estimate, and a `Part of [[<Project name>]]` line. Copy across
+       whatever detail from the project's `## Notes` the step needs — the point is that the card can be
+       acted on without opening the project note.
+    4. Append `→ [[<Item name>]]` to that step's checklist line in the project note. Link by **note
+       name, never by path**: review moves done items into `GTD/Archive/` and a name-only wikilink
+       survives the move.
+    5. If an item of that name already exists in `GTD/Items/` or `GTD/Archive/`, don't collide
+       silently — propose a distinguishing name (append the project, e.g. `Call 3 studios (Tattoo)`).
+    6. Never promote a step already marked `- [x]`, and never take a project above its `wip`.
+
+    ## Guard clauses
+
+    - **Never delete** a project note or a checklist line. An abandoned project is `status: done` with a
+      `Cancelled: <reason>` line in the body; an abandoned step is `- [x] ~~text~~ (cancelled: reason)`.
+    - A done project **stays in `GTD/Projects/`** — it records how the thing got done. Projects are
+      never archived; `GTD/Archive/` is for items.
+    - Never write a `kanban_order` into a project note: projects are not on the board.
+    - Never touch `GTD/Board.base`, `.obsidian/`, or any note outside `GTD/`.
+
 ---
 
 Before applying anything, confirm the vault's current version and the target, then show me the plan.
@@ -183,3 +309,5 @@ Before applying anything, confirm the vault's current version and the target, th
 ## Adding a future migration
 
 When the schema changes again, append a new `### vN → vN+1` entry to the changelog **in two places, kept identical**: the `## The /gtd-update skill` block in this file, and section 8 of [`install.md`](install.md) (and its mirror in `install.html`). Bump the `Schema version:` number in the `install.md` / `install.html` schema so fresh installs start at the new latest. Existing vaults then pick the change up by running this prompt (or `/gtd-update` once their skill has been refreshed).
+
+A migration that installs a **whole new skill** needs one thing more. The changelog describes edits, so a new file has to be printed in full: give it its own `## The /<name> skill` section inside this prompt *and* its own numbered section in `install.md`, and have the changelog entry point at both rather than repeating the text a third time. v8 and `/gtd-project` are the worked example — and note the consequence the entry spells out: that migration can only be applied when the canonical source was actually read, so it refuses to apply itself offline instead of writing half of v8.
