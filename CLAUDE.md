@@ -15,13 +15,13 @@ The work here is editing prompt text so that it stays internally consistent acro
 | File | Role |
 |---|---|
 | `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 23 → 690). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 gtd-project skill · 10 "Also create". |
-| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the full `/gtd-project` skill text (v8 installs a whole new file, which a changelog entry can't carry — see below). |
+| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the **canonical text of every other skill** — gtd-triage, gtd-review, gtd-project — each byte-identical to its `install.md` section. Since v10 that is what lets a migration say "overwrite it verbatim" rather than describing an edit (see below). |
 | `import-notion.md` | **Outside the three-way sync, and deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault. Nothing fetches or embeds it, nothing version-stamps it — edit it freely, no mirroring, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because `/gtd-update` only refreshes on a schema bump, so edits never reached vaults that had already installed it. Importing happens once per vault, which is the whole argument for a prompt over a skill. |
 | `install.html` | Standalone single-page version. The entire installer prompt is a **JSON string** inside `<script type="application/json" id="prompt-data">`, injected into `#promptcode` at runtime. Not byte-identical to `install.md`: its tail folds the manual-setup steps into a final "One thing this prompt can't do for you" paragraph that `install.md` keeps as its own section. |
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 9**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 10**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -33,14 +33,19 @@ Also bump the `Schema version:` marker in `install.md` §1, in the `install.html
 final `[capture] Vault initialized (schema vN)` log line. `update.md`'s "Adding a future migration"
 section restates this.
 
-A migration that installs a **whole new skill file** needs one thing more, because a changelog entry
-describes edits and cannot carry a hundred lines of new file. Print the skill once per rendering — its
-own numbered section in `install.md`, its own `## The /<name> skill` section inside `update.md`'s
-prompt, the mirror in `install.html` — and have the changelog entry point at those instead of
-repeating the text a fourth time. v8 and `/gtd-project` are the worked example. The consequence is
-deliberate and spelled out in that entry: since an installed `/gtd-update` skill carries only the
-changelog, v8 can only be applied when the canonical source was actually read, and refuses rather
-than writing half of itself offline.
+A migration that touches a **skill file at all** — adding one or editing one — needs one thing more.
+Print the skill once per rendering: its own numbered section in `install.md`, its own
+`## The /<name> skill` section inside `update.md`'s prompt, the mirror in `install.html`. Then have
+the changelog entry say *overwrite `.claude/skills/<name>/SKILL.md` verbatim from that section*,
+rather than repeating the text a fourth time or describing the edit in prose.
+
+**Never describe a skill edit in prose** (v10). The agent applying it writes its own wording, the next
+migration edits that paraphrase, and after a few rounds a vault's skill and the repo's are different
+documents with no way to tell a rewording from a lost rule. v9 is the worked example of the mistake
+and v10 of the repair; v4 and v8 were the precedents. The consequence is deliberate and spelled out in
+those entries: since an installed `/gtd-update` carries only the changelog, such a migration can only
+be applied when the canonical source was actually read, and refuses rather than writing half of
+itself offline.
 
 Check sync after any edit:
 

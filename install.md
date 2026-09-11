@@ -42,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 9.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 10.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -593,6 +593,20 @@ and fall below every real number.
     2. **`CLAUDE.md`** — extend the **review** operation bullet so it mentions spotting stalled projects alongside stale items.
     3. **No item and no project notes are touched.** Only the `Schema version:` marker and those two files change — and nothing is written outside `GTD/`, `Templates/GTD Item.md`, `clipper/` and `.claude/skills/`.
 
+    ### v9 → v10 — migrations stop paraphrasing the skills they edit
+
+    A migration that *edits* a skill used to describe the edit in prose — "add a check that derives the last-moved date" — and the agent applying it wrote that check in its own words. The result was correct but not the canonical text, and the damage compounds: v10's instructions land on v9's paraphrase and get paraphrased again, from a base that already drifted. After a few rounds the skill in a vault and the skill in the repo are two different documents, and nothing can tell a harmless rewording from a rule that quietly went missing.
+
+    v8 already solved this for a *new* skill: `/gtd-project` couldn't be described, so the canonical source prints it in full and the migration copies it verbatim. v10 extends that to edits. From here on the canonical `update.md` prints the current text of **every** skill, and a migration that changes one says "overwrite it verbatim from that section" instead of describing the change. v4 set the precedent for a whole-file overwrite; this makes it the rule.
+
+    Like v4, this migration touches no vault data. Its only job is to replace two skill files with their canonical text, which heals whatever paraphrasing earlier migrations left behind.
+
+    1. **`.claude/skills/gtd-triage/SKILL.md`** — overwrite it, verbatim, with the `## The /gtd-triage skill` section of the canonical `update.md` (the file `CANONICAL_SOURCE` points at, already read by the self-check). Report the line count before and after.
+    2. **`.claude/skills/gtd-review/SKILL.md`** — the same, from the `## The /gtd-review skill` section.
+    3. **Before overwriting either, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking. Whitespace and wording differences are exactly what this migration exists to remove, so don't ask about those.
+    4. **If the canonical source could not be read on this run, apply nothing for v10** and say so. There is no way to reconstruct a canonical text from a changelog entry, which is the whole point of the change.
+    5. **Nothing else.** No item notes, no project notes, no frontmatter, no board, no template, no clipper, no `CLAUDE.md` schema edits, and no `updated` date moves anywhere. Only the `Schema version:` marker and those two files change.
+
 ## 9. `.claude/skills/gtd-project/SKILL.md`
 
     ---
@@ -708,7 +722,7 @@ and fall below every real number.
 - Empty folders `GTD/Items/`, `GTD/Projects/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v9): board, template, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v10): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 
