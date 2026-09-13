@@ -21,7 +21,7 @@ The work here is editing prompt text so that it stays internally consistent acro
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 10**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 11**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 

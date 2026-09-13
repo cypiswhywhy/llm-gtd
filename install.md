@@ -42,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 10.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 11.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -194,6 +194,7 @@ Report which of the files below already existed and how you handled each before 
     5. **Keep the tag vocabulary tight.** Before tagging, list tags already used across `GTD/Items/` and `GTD/Archive/` and reuse them; introduce a new tag only when nothing fits.
     6. **Don't touch** `.obsidian/` config or `GTD/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`.
     7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. Two exceptions are part of the schema, not deviations from it: `project` appears only on an item that is a project step, and a project note carries its own keys (`wip`, `outcome`, and no `kanban_order`). `kanban_order` is the one key with split ownership: stamp it on an item you create (minus the creation timestamp in milliseconds), and preserve any value you find untouched.
+    8. **Write as the human.** Everything you put into a note — a title, a project step, a summary, a line of body text — reads as if the human wrote it for themselves: in their language, in their voice, never addressed to them. A task is named the way a person writes it on their own list, not as an order to a reader; where a language has a distinct form for that, use it (Polish "Zadzwonić do banku", not "Zadzwoń do banku"; German "Bank anrufen", not "Ruf die Bank an"). In English the bare verb ("Call the bank") already is that form. The rule covers what you write, not what the human already wrote: never rewrite their text only to change its form. Your replies in the conversation are still addressed to the human.
 
 ## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
@@ -363,7 +364,7 @@ and fall below every real number.
     2. **Build the tag vocabulary.** Gather all `tags` used across `GTD/Items/` and `GTD/Archive/` so suggestions reuse existing tags.
 
     3. **Enrich each item:**
-       - If `source` has a URL and the body is empty or just a raw clip: fetch the URL and write a 2–4 sentence summary into the body (keep any existing user text above it, add summary under a `## Summary` heading). If the fetch fails, note that and move on — never block the batch.
+       - If `source` has a URL and the body is empty or just a raw clip: fetch the URL and write a 2–4 sentence summary into the body, in the human's own voice (rule 8 in `CLAUDE.md`); keep any existing user text above it and put the summary under a `## Summary` heading. If the fetch fails, note that and move on — never block the batch.
        - Suggest tags from the vocabulary (new tag only if nothing fits).
        - Propose a destination status using GTD clarification rules:
          - actionable and quick (~2 min) → suggest the user just does it now; otherwise `next`
@@ -371,7 +372,7 @@ and fall below every real number.
          - blocked on someone/something else → `waiting`
          - "maybe someday", no commitment → `someday`
          - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading
-       - If the title isn't action-oriented, propose a rename (short verb phrase).
+       - If the title isn't action-oriented, propose a rename: a short verb phrase, worded the way the human would write it on their own list (rule 8 in `CLAUDE.md`).
 
     4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.
 
@@ -607,6 +608,22 @@ and fall below every real number.
     4. **If the canonical source could not be read on this run, apply nothing for v10** and say so. There is no way to reconstruct a canonical text from a changelog entry, which is the whole point of the change.
     5. **Nothing else.** No item notes, no project notes, no frontmatter, no board, no template, no clipper, no `CLAUDE.md` schema edits, and no `updated` date moves anywhere. Only the `Schema version:` marker and those two files change.
 
+    ### v10 → v11 — the agent writes as the human, not to them
+
+    Text the agent put into notes read in someone else's voice. The clearest case was task titles: they came out as orders addressed to the reader, so a Polish board said "Zadzwoń do banku" ("call the bank!") where a person's own list says "Zadzwonić do banku". The notes in this vault are the human's own notes, so v11 adds one rule for every language: whatever the agent writes into a note reads as if the human wrote it for themselves — their language, their voice, never addressed to them.
+
+    The rule covers text written from now on. Existing notes are **not** rewritten or renamed: a rename breaks the `→ [[...]]` links in project checklists, and text the human typed is theirs.
+
+    1. **`.claude/skills/gtd-triage/SKILL.md`** — overwrite it, verbatim, with the `## The /gtd-triage skill` section of the canonical `update.md` (the file `CANONICAL_SOURCE` points at, already read by the self-check). Report the line count before and after.
+    2. **`.claude/skills/gtd-project/SKILL.md`** — the same, from the `## The /gtd-project skill` section.
+    3. **Before overwriting either, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking.
+    4. **`CLAUDE.md`** — append this to the end of `## Rules for the agent`, word for word, as rule 8:
+
+       > 8. **Write as the human.** Everything you put into a note — a title, a project step, a summary, a line of body text — reads as if the human wrote it for themselves: in their language, in their voice, never addressed to them. A task is named the way a person writes it on their own list, not as an order to a reader; where a language has a distinct form for that, use it (Polish "Zadzwonić do banku", not "Zadzwoń do banku"; German "Bank anrufen", not "Ruf die Bank an"). In English the bare verb ("Call the bank") already is that form. The rule covers what you write, not what the human already wrote: never rewrite their text only to change its form. Your replies in the conversation are still addressed to the human.
+
+    5. **If the canonical source could not be read on this run, apply nothing for v11** and say so. Steps 1 and 2 need the canonical text, and skills that point at a rule 8 that isn't there are worse than no v11.
+    6. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those two skill files and `CLAUDE.md` change.
+
 ## 9. `.claude/skills/gtd-project/SKILL.md`
 
     ---
@@ -642,7 +659,8 @@ and fall below every real number.
     3. **Draft the steps** — 5 to 12, in order, each one:
        - a **physical action** beginning with a verb, startable without deciding anything first.
          "Research studios" is not a step; "open Instagram, search #tattoowarsaw, paste 3 profiles into
-         the project note" is.
+         the project note" is. Word it the way the human would write it on their own list (rule 8 in
+         `CLAUDE.md`) — the step text becomes the item's name.
        - **one sitting**, with a rough estimate appended as `~10m`, `~45m`, `~2h`. Anything over about
          two hours is really two steps — split it.
        - a **decision** where a decision is what's needed ("pick a studio and pay the deposit ~30m").
@@ -722,7 +740,7 @@ and fall below every real number.
 - Empty folders `GTD/Items/`, `GTD/Projects/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v10): board, template, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v11): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 
