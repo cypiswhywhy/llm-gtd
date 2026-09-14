@@ -1,107 +1,99 @@
 # llm-gtd
 
-An Obsidian-based GTD system that an LLM maintains for you.
+**A to-do system for Obsidian where the AI does the boring part.**
 
-Following the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
-**you capture and decide, the LLM does the bookkeeping.** You drop thoughts and web clips
-into an inbox; Claude Code enriches them, tags them, routes them onto a kanban board, and
-runs the weekly lint pass.
+You dump thoughts in. Claude Code sorts, tags and files them. You just decide what to do.
 
-This repo isn't a plugin or a package — it's a set of **prompts**. You paste one into Claude
-Code at your vault's root and it builds (or migrates) the whole system in place.
+![The GTD board in Obsidian: six columns from inbox to done, each card a short action with colored tags](docs/assets/board.png)
 
-## Files
+## Why it works for busy brains
 
-| File | What it's for |
+- 🧠 **Capture takes seconds.** Drop a note or a web clip in the inbox. No sorting, no forms.
+- 🧹 **Someone else does the admin.** Claude tags, files and cleans up — and asks before it changes anything.
+- 🎯 **One next step, not twenty.** Big projects show only the step you can start today.
+- 🔔 **Nothing rots quietly.** The weekly review points out what got stuck and suggests one way out.
+
+It follows the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
+**you capture and decide, the AI does the bookkeeping.**
+
+## Get started
+
+1. **Open a vault** in Obsidian (new or existing — your notes stay untouched).
+2. **Install 6 plugins** (Settings → Community plugins): `Dataview`, `Templater`, `Obsidian Kanban`,
+   `Base Board`, `Obsidian Tasks Plugin`, `Icon Folder`. `Base Board` needs Obsidian 1.10.2+.
+3. **Paste the installer.** Run `claude` in the vault folder and paste everything between the two
+   `---` lines of [`install.md`](install.md).
+4. **Flip one switch.** Settings → Templater → turn on *Trigger Templater on new file creation*, and
+   add a Folder Template: `GTD/Items` → `Templates/GTD Item.md`.
+
+Done. Open `GTD/Board.base` to see your board.
+
+## Every day
+
+| Type this | What happens |
 |---|---|
-| [`install.md`](install.md) | The installer prompt. Sets up a fresh vault — schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`, `/gtd-project`, `/gtd-update` skills. Safe on vaults that already have notes. |
-| [`update.md`](update.md) | The migration prompt. Brings an already-installed vault up to the current schema version, non-destructively. Also the canonical home of the migration changelog. |
-| [`import-notion.md`](import-notion.md) | The import prompt. Bulk-loads an existing system — a Notion **Markdown & CSV** export, or a plain CSV — onto the board. Paste-in only: importing happens once per vault, so there's no skill to install. |
-| [`install.html`](install.html) | A polished single-page version of `install.md` — pitch, setup steps, and a copy-button prompt block. Open it in a browser, or paste it into an Artifact for a shareable link. |
+| `/gtd-triage` | Empties the inbox: tags each item and suggests a column. |
+| `/gtd-review` | Weekly check-up: stuck projects, stale cards, old done items archived. |
+| `/gtd-project buy a flat` | Turns a big goal into small steps. Only the first step becomes a card. |
+| `/gtd-update` | Pulls in the latest version of the system. |
 
-## Getting started
+To finish something, drag its card to **done**.
 
-1. Create (or open) an Obsidian vault.
-2. In Obsidian: Settings → Community plugins → install and enable `Dataview`, `Templater`,
-   `Obsidian Kanban`, `Base Board`, `Obsidian Tasks Plugin`, `Icon Folder`.
-3. Open a terminal at the vault's root, run `claude`, and paste in the prompt from
-   [`install.md`](install.md) (everything between the two `---` markers).
-4. Finish the one manual step it reports: Settings → Templater → "Trigger Templater on new
-   file creation", plus a Folder Template mapping `GTD/Items` → `Templates/GTD Item.md`.
+## Big things: projects
 
-Day to day: `/gtd-triage` clears the inbox, `/gtd-review` is the weekly lint pass,
-`/gtd-update` pulls in schema changes.
+"Buy a flat" never gets started — it's a result, not an action. `/gtd-project` asks what *finished*
+looks like, then writes small steps with time estimates into a note in `GTD/Projects/`.
 
-## Projects
+![A project note: an outcome, then a checklist of small steps with time estimates, the first one ticked off](docs/assets/project.png)
 
-Some things don't fit on one card. "Buy a flat", "renovate the kitchen", "plan the holiday" —
-written as a single item they never start, because the card names a result instead of an
-action; broken into cards by hand they bury the board under twenty obligations.
-
-`/gtd-project <description>` agrees what *finished* means, then breaks the outcome into steps
-small enough to actually begin — each one a physical action with a time estimate, decisions
-included as steps of their own. The plan lives as a checklist in a `GTD/Projects/` note, and
-**only the active step becomes a card**. Run `/gtd-project` with no argument and it sweeps
-every project, ticks off what you finished, and promotes the next step of each one that has
-room (one at a time by default — a project can raise its own `wip` when two tracks genuinely
-run in parallel).
-
-Projects are never cards themselves, so the board stays a list of things you can do today.
-
-The failure mode that creates is silence: one step goes cold and the project stops existing without
-anything looking wrong. So `/gtd-review` checks projects first — no movement in 14 days and it says
-so, names the step you're stuck on, and proposes one way out (a sweep, a smaller step, `waiting` on
-someone, or letting it go). Movement is worked out from what's already on disk, so there's no field
-to keep up to date.
+- **Only the active step is on the board**, so it stays a list of things you can do today.
+- **Run `/gtd-project` with no argument** to tick off finished steps and move the next one up.
+- **Stalled for 14 days?** `/gtd-review` names the stuck step and suggests one fix: a sweep, a smaller
+  step, `waiting` on someone, or letting it go.
 
 ## Coming from Notion
 
-Export your workspace as **Markdown & CSV** (all rows, everything), then **drop the zip into a
-`.gtd-import/` folder at your vault's root** — no need to unzip. The leading dot keeps Obsidian
-from indexing it, so the export can sit inside the vault without polluting search or the board.
-Then paste in the prompt from [`import-notion.md`](import-notion.md).
+1. In Notion, export as **Markdown & CSV** (all rows).
+2. Drop the zip into a `.gtd-import/` folder in your vault. No need to unzip. (Leaving it in
+   `~/Downloads/` usually works too.)
+3. Paste the prompt from [`import-notion.md`](import-notion.md).
 
-There's no `/gtd-import` skill on purpose. Importing is a once-per-vault job, so a pasted prompt
-is always current, needs no install step, and can't go stale the way an installed copy does.
+It shows you how your Notion statuses map to the board and writes nothing until you say yes.
+Long-finished items go straight to the archive, so the board opens clean.
 
-You can skip even that: the import checks `.gtd-import/`, the vault root, `~/Downloads/`, and the
-vault's parent before it asks you for a path, so leaving the zip in Downloads usually works.
-
-It surveys the export, proposes how your Notion statuses and tags map onto the six GTD columns,
-and writes only once you confirm. Long-finished items go straight to `GTD/Archive/` so the board
-opens clean. If your vault is a git repo, `.gtd-import/` belongs in `.gitignore` — the import
-offers to add it.
-
-## What it creates in your vault
+<details>
+<summary><b>What it adds to your vault</b></summary>
 
 ```
-CLAUDE.md               # the schema — the contract between you and the agent
+CLAUDE.md               # the rules the AI follows
 GTD/Board.base          # kanban board + Inbox / Stale / All items views
-GTD/Items/              # one note per item — the only place items live
-GTD/Projects/           # one note per project — the plan, never a card
+GTD/Items/              # one note per item
+GTD/Projects/           # one note per project — never a card
 GTD/Archive/            # old done items
-GTD/Attachments/        # files an import brought with it (on demand)
-GTD/Log.md              # append-only activity log
-Templates/GTD Item.md   # Templater template for new items
+GTD/Attachments/        # files an import brought along (only if needed)
+GTD/Log.md              # log of everything the AI did
+Templates/GTD Item.md   # template for new items
 clipper/                # Obsidian Web Clipper template
 .claude/skills/         # gtd-triage, gtd-review, gtd-project, gtd-update
 ```
 
-Nothing else in the vault is read, moved, retagged, or modified — the prompts are explicit
-about that, and they stop and ask rather than overwrite anything that already exists.
+Nothing else in your vault is read, moved or changed. If a file already exists, it stops and asks.
 
-## Schema versioning
+</details>
 
-The generated `CLAUDE.md` carries a `Schema version: N` marker (currently **v11**). When the
-schema changes, a `### vN → vN+1` entry is appended to the changelog in `update.md` and
-mirrored in `install.md` §8 and the `install.html` prompt blob — those three must stay in sync.
+<details>
+<summary><b>What's in this repo</b></summary>
 
-Installed vaults don't go stale: the `/gtd-update` skill ships with `CANONICAL_SOURCE`
-pointing at this repo's raw `update.md`, checks it on every run, and refreshes itself when it
-finds a newer changelog. Point it at a local clone instead if you want unpushed migrations to
-count.
+This isn't a plugin — it's a set of **prompts** you paste into Claude Code.
 
-## History
+| File | Use it to |
+|---|---|
+| [`install.md`](install.md) | Set up a vault. |
+| [`update.md`](update.md) | Upgrade a vault installed earlier. `/gtd-update` does this for you. |
+| [`import-notion.md`](import-notion.md) | Move in from Notion or a CSV, once. |
+| [`install.html`](install.html) | Read the installer as a web page with a copy button. |
 
-This started inside a personal scripts repo as `scripts/obsidian-llm-gtd/` and was extracted
-here with its git history intact.
+`/gtd-update` checks this repo on every run, so installed vaults stay current. Maintainer notes
+live in [`CLAUDE.md`](CLAUDE.md).
+
+</details>
