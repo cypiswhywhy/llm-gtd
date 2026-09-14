@@ -190,7 +190,7 @@ Only after confirmation.
    - drop Notion's plain-text property block at the top of the file (the `Status: Done` / `Tags: x, y` lines before the first blank line); it's already captured in frontmatter and in `## Imported`
    - internal links `[Some Page](Some%20Page%20<id>.md)` → `[[Some Page]]` **if that page was also imported**; otherwise keep the link text as plain text and drop the dead target
    - image and file links pointing inside the export → copy the file to `GTD/Attachments/<item-slug>/<filename>` and rewrite the link to that path
-   - leave `- [ ]` checkboxes exactly as they are — the Tasks plugin reads them
+   - leave `- [ ]` checkboxes exactly as they are
    - leave `<details>` toggles and callout blocks alone; don't prettify
 2. A `## Imported` section, **always**, holding:
    - `From Notion — <database name> · [original page](https://www.notion.so/<id>) · imported YYYY-MM-DD`

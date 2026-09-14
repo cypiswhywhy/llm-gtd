@@ -5,7 +5,7 @@ A self-contained prompt for bringing a vault that **already has LLM-GTD installe
 - **Brand-new vault?** Use [`install.md`](install.md) instead — this prompt assumes an install is already present.
 - **Day to day**, the installed `/gtd-update` skill does the same job from inside the vault. This file is the canonical, always-latest copy of the changelog. As of the current skill, `/gtd-update` points a `CANONICAL_SOURCE` at *this file* and checks it on every run, so once a vault has been through this prompt once it can detect newer versions on its own (and self-refresh) instead of going stale. Running this prompt also creates/repairs the skill for vaults installed before it existed.
 
-No new plugins are needed to update — the six community plugins from `install.md` are already enabled. A migration may still *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import); the prompt tells you, it never attempts them.
+No new plugins are needed to update — the two community plugins from `install.md` are already enabled. A migration may still *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import); the prompt tells you, it never attempts them.
 
 ## The prompt
 

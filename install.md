@@ -8,7 +8,7 @@ Works on a **fresh vault** or an **existing one**: everything the system creates
 
 These happen in Obsidian's own UI — no prompt can do them.
 
-1. **Install the plugins.** Settings → Community plugins → enable, then install these six: `Dataview`, `Templater`, `Obsidian Kanban`, `Base Board`, `Obsidian Tasks Plugin`, `Icon Folder`. Enable all six. (`Base Board` renders the kanban board on top of Obsidian's Bases feature and needs Obsidian **1.10.2 or newer**.)
+1. **Install the plugins.** Settings → Community plugins → enable, then install these two: `Base Board` and `Templater`. Enable both. (`Base Board` renders the kanban board on top of Obsidian's Bases feature and needs Obsidian **1.10.2 or newer**.)
 
 2. **Auto-fill frontmatter on new notes** — so items you create by hand in the inbox get `created`/`source` without thinking. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add a mapping: folder `GTD/Items` → template `Templates/GTD Item.md`. Now any note you create in `GTD/Items/` is stamped with the schema frontmatter automatically. (Web-clipped notes already carry it; this covers the hand-made ones. Triage also backfills anything that still slips through.)
 
