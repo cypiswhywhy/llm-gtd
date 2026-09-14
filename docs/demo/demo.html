@@ -1,0 +1,352 @@
+<title>llm-gtd demo</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0f0f12;font-family:Inter,"Noto Sans",sans-serif;color:#dadada}
+.mono,#term{font-family:"DejaVu Sans Mono","Noto Sans Mono",monospace}
+#stage{position:relative;width:1280px;height:720px;background:radial-gradient(ellipse at 50% -10%,#2c2548,#0f0f12 65%);overflow:hidden}
+
+#caption{position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:23px;font-weight:600;color:#fff;letter-spacing:-.2px}
+#caption .num{display:inline-flex;width:32px;height:32px;border-radius:50%;background:#7c5cff;align-items:center;justify-content:center;font-size:17px}
+#caption .sub{font-weight:400;color:#a9a3c4;font-size:17px}
+.cmd{font-family:"DejaVu Sans Mono",monospace;background:#2e2748;padding:1px 9px;border-radius:6px;color:#cdbdff;font-size:.9em}
+
+#obs{position:absolute;z-index:0;left:24px;top:64px;width:1232px;height:632px;background:#1e1e1e;border-radius:10px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.55);border:1px solid #333}
+.layer{position:absolute;inset:0}
+.tabbar{position:absolute;left:0;right:0;top:0;height:38px;background:#262626;border-bottom:1px solid #303030}
+.tab{position:absolute;left:52px;top:6px;height:32px;width:230px;background:#1e1e1e;border-radius:8px 8px 0 0;padding:7px 14px;font-size:13px;color:#ddd}
+.tab .x{float:right;color:#888}
+.ribbon{position:absolute;left:0;top:38px;bottom:0;width:44px;border-right:1px solid #303030;background:#232323}
+.ribbon i{display:block;width:16px;height:16px;border:1.5px solid #7a7a7a;border-radius:4px;margin:18px auto 0}
+.crumb{position:absolute;left:44px;right:0;top:38px;height:36px;text-align:center;line-height:36px;font-size:13px;color:#999}
+.crumb b{color:#ddd;font-weight:400}
+.toolbar{position:absolute;left:56px;right:16px;top:76px;height:34px;display:flex;align-items:center;font-size:13px;color:#ccc;border-bottom:1px solid #2c2c2c}
+.toolbar .res{color:#888;margin-left:14px}
+.toolbar .r{margin-left:auto;display:flex;gap:18px;color:#bbb}
+.toolbar .r span:first-child{color:#a88bfa}
+
+.col{position:absolute;width:186px;background:#262626;border:1px solid #333;border-radius:8px}
+.colhead{height:40px;display:flex;align-items:center;padding:0 10px;font-size:13px;gap:6px}
+.colhead .cnt{color:#888}
+.colhead .acts{margin-left:auto;color:#888;letter-spacing:6px}
+.card{position:absolute;width:172px;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:6px;overflow:hidden}
+.card .in,#measure{padding:9px 10px;font-size:12.5px;line-height:1.35;color:#e2e2e2}
+.tags{display:flex;gap:4px;margin-bottom:5px}
+.tag{font-size:10.5px;padding:1px 6px;border-radius:4px;font-weight:500}
+#measure{position:absolute;visibility:hidden;width:172px;left:-999px}
+
+.empty{position:absolute;left:44px;right:0;top:38px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#777;font-size:15px}
+.empty a{color:#a88bfa;font-size:13px}
+
+.note{position:absolute;left:250px;top:92px;width:760px;font-size:17px;color:#dcdcdc}
+.note h1{font-size:34px;margin:0 0 14px}
+.note h2{font-size:25px;margin:26px 0 10px}
+.note p{margin:0}
+.task{list-style:none;padding:0;margin:0}
+.task li{margin:9px 0;display:flex;align-items:center;gap:10px}
+.box{width:18px;height:18px;border:1.5px solid #777;border-radius:4px;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.task li.done .box{background:#7c5cff;border-color:#7c5cff}
+.task li.done .txt{text-decoration:line-through;color:#8a8a8a}
+.task a{color:#a88bfa;text-decoration:underline}
+.est{color:#999}
+
+#term{position:absolute;z-index:10;left:580px;top:86px;width:676px;height:604px;background:#141416;border:1px solid #3a3a42;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.65);overflow:hidden;display:flex;flex-direction:column;font-size:12.5px;line-height:1.48}
+.tbar{height:30px;flex:none;background:#26262b;display:flex;align-items:center;padding:0 12px;gap:7px;color:#999;font-family:Inter,sans-serif;font-size:12px}
+.tbar i{width:11px;height:11px;border-radius:50%;background:#555;display:block}
+.tbar span{margin-left:auto;margin-right:auto;transform:translateX(-24px)}
+#tx{flex:1;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:12px 16px 6px}
+#tx div{white-space:pre-wrap}
+.welcome{border:1px solid #d97757;border-radius:6px;padding:6px 12px;width:fit-content;margin-bottom:10px;color:#ddd}
+.welcome b{color:#d97757}
+.u{color:#9b9b9b;margin:8px 0 6px}
+.dot{color:#e6e6e6}.ok{color:#4ec36b}
+.dim{color:#8a8a8a}
+.hl{color:#cdbdff}
+.spin{color:#d97757;margin-top:4px}
+#input{flex:none;margin:6px 14px 16px;border:1px solid #55555e;border-radius:8px;padding:8px 12px;min-height:38px;white-space:pre-wrap;color:#eee}
+.caret{display:inline-block;width:8px;height:15px;background:#ddd;vertical-align:-3px}
+
+#cursor{position:absolute;width:22px;height:22px;z-index:50;pointer-events:none}
+
+.card-full{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#2c2548,#0f0f12 70%);text-align:center;z-index:100}
+.card-full h1{font-size:76px;margin:0;color:#fff;letter-spacing:-2px}
+.card-full .lead{font-size:26px;color:#cfc8ea;margin-top:14px}
+.card-full .small{font-size:17px;color:#8f89aa;margin-top:30px}
+.cmds{display:grid;grid-template-columns:auto auto;gap:12px 22px;margin-top:34px;text-align:left;font-size:18px;color:#cfc8ea}
+.url{margin-top:40px;font-size:22px;color:#fff;font-family:"DejaVu Sans Mono",monospace;background:#2e2748;padding:8px 18px;border-radius:8px}
+</style>
+
+<div id="stage">
+  <div id="caption"></div>
+
+  <div id="obs">
+    <div class="layer" id="v-empty">
+      <div class="tabbar"><div class="tab">New tab <span class="x">×</span></div></div>
+      <div class="ribbon"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="empty">No file is open<a>Create new note</a><a>Go to file</a></div>
+    </div>
+    <div class="layer" id="v-board">
+      <div class="tabbar"><div class="tab">⫼ Board <span class="x">×</span></div></div>
+      <div class="ribbon"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="crumb">GTD / <b>Board</b></div>
+      <div class="toolbar">⫼&nbsp; Board ⌃<span class="res" id="results">0 results</span>
+        <div class="r"><span>⇅ Sort</span><span>Filter</span><span>Properties</span><span>Search</span><span>+ New</span></div></div>
+      <div id="board"></div>
+      <svg id="cursor" viewBox="0 0 22 22"><path d="M3 2 L3 18 L7.5 14 L10.5 20.5 L13 19.3 L10 13 L16 13 Z" fill="#fff" stroke="#000" stroke-width="1.2"/></svg>
+    </div>
+    <div class="layer" id="v-project">
+      <div class="tabbar"><div class="tab">Get a tattoo <span class="x">×</span></div></div>
+      <div class="ribbon"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="crumb">GTD / Projects / <b>Get a tattoo</b></div>
+      <div class="note" id="note"></div>
+    </div>
+  </div>
+
+  <div id="term">
+    <div class="tbar"><i></i><i></i><i></i><span>~/Notes — claude</span></div>
+    <div id="tx"></div>
+    <div id="input"></div>
+  </div>
+
+  <div class="card-full" id="titlecard">
+    <h1>llm-gtd</h1>
+    <div class="lead">A to-do system for Obsidian where the AI does the boring part.</div>
+    <div class="small">1-minute demo</div>
+  </div>
+  <div class="card-full" id="endcard">
+    <h1>llm-gtd</h1>
+    <div class="lead">You capture and decide. Claude does the bookkeeping.</div>
+    <div class="cmds">
+      <span class="cmd">/gtd-triage</span><span>empty the inbox</span>
+      <span class="cmd">/gtd-project</span><span>big goal → one next step</span>
+      <span class="cmd">/gtd-review</span><span>weekly check-up</span>
+      <span class="cmd">/gtd-update</span><span>get the latest version</span>
+    </div>
+    <div class="url">github.com/cypiswhywhy/llm-gtd</div>
+  </div>
+  <div id="measure"></div>
+</div>
+
+<script>
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,p)=>a+(b-a)*p;
+const ease=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const $=id=>document.getElementById(id);
+
+const COLS=['inbox','focus','next','someday','waiting','done'];
+const TAGC={work:['#e6a700','#1b1b1b'],home:['#9b4dde','#fff'],health:['#e8388a','#fff'],travel:['#d9a400','#1b1b1b'],tattoo:['#7a4cc2','#fff']};
+
+// ---------- timeline ----------
+const TL={captions:[],term:[],sessions:[],board:[{t:0,dur:0,s:{}}],pane:[{t:0,view:'empty'}],projDoneAt:1e9};
+let S0={},K=0;
+function board(t,dur,fn,extra={}){const s=JSON.parse(JSON.stringify(S0));fn(s);S0=s;TL.board.push({t,dur,s,...extra});return t+dur}
+const add=(id,col,title,tags=[])=>s=>{s[id]={col,title,tags,k:++K}};
+const move=(id,col,title,tags)=>s=>{s[id].col=col;if(title)s[id].title=title;if(tags)s[id].tags=tags};
+const cap=(t,n,html,sub='')=>TL.captions.push({t,html:`<span class="num">${n}</span><span>${html}</span>${sub?`<span class="sub">${sub}</span>`:''}`});
+
+const tool=(n,a)=>`<span class="ok">⏺</span> <b>${n}</b>(${esc(a)})`;
+const say=h=>`<span class="dot">⏺</span> ${h}`;
+const subl=h=>`<span class="dim">  ⎿  ${h}</span>`;
+function session(t){
+  const S={t,items:[]};TL.sessions.push(S);let c=t;
+  const api={
+    wait(d){c+=d;return api},
+    type(text,cps=30){const sub=c+text.length/cps+.35;S.items.push({type:'input',t:c,text,cps,sub});c=sub+.2;return api},
+    spin(d,text){S.items.push({type:'spin',t:c,until:c+d,text});c+=d;return api},
+    out(html,d=.28){S.items.push({type:'out',t:c,html});c+=d;return api},
+    get t(){return c}};
+  return api;
+}
+
+const INSTALL=`Install llm-gtd in this vault.
+
+1. Download this file with curl and read all of it:
+   https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/install.md
+   (Don't use a web-fetch tool. It summarizes.)
+2. Follow the prompt between its two \`---\` lines exactly,
+   as if I had pasted it in.`;
+
+// 1 · install
+let t=3.4;
+cap(t,1,'Install: paste one prompt into Claude Code');
+TL.term.push([t,1]);
+let x=session(t).wait(.8).type(INSTALL,160).spin(1.3,'✻ Reading install.md…')
+  .out(tool('Bash','curl -sL …/llm-gtd/main/install.md')).out(subl('756 lines'),.4)
+  .out(say('Schema understood. Creating everything in one pass.'),.4);
+for(const f of ['CLAUDE.md','Templates/GTD Item.md','GTD/Board.base','GTD/Log.md','clipper/gtd-clipper-template.json',
+  '.claude/skills/gtd-triage/SKILL.md','.claude/skills/gtd-review/SKILL.md','.claude/skills/gtd-project/SKILL.md','.claude/skills/gtd-update/SKILL.md'])
+  x.out(tool('Write',f),.2);
+x.wait(.3).out(say('Done. Vault initialized (schema v11).'),.2)
+  .out(`  One switch is yours: Templater → Folder template`,.1)
+  .out(`  <span class="hl">GTD/Items</span> → <span class="hl">Templates/GTD Item.md</span>`).wait(1.8);
+t=x.t; TL.term.push([t,0]); TL.pane.push({t,view:'board'});
+
+// 2 · capture
+t+=.8;
+cap(t,2,'Capture: dump thoughts in.','No sorting, no forms.');
+const raw=[['c1','standing desk idea'],['c2','dentist'],['c3','landlord heating again'],['c4','japan trip??'],['c5','quarterly report intro']];
+raw.forEach(([id,title],i)=>board(t+.6+i*.8,.45,add(id,'inbox',title)));
+t+=.6+raw.length*.8+1.0;
+
+// 3 · triage
+cap(t,3,'<span class="cmd">/gtd-triage</span>','Claude tags, renames and files them.');
+TL.term.push([t,1]);
+const plan=[['standing desk idea','someday','home','—'],['dentist','next','health','Book a dentist check-up'],
+  ['landlord heating again','next','home','Reply to the landlord about the heating'],['japan trip??','someday','travel','Plan a trip to Japan'],
+  ['quarterly report intro','focus','work','Write the quarterly report intro']];
+const row=(a,b,c,d)=>'  '+a.padEnd(24)+b.padEnd(9)+c.padEnd(8)+d;
+x=session(t).wait(.7).type('/gtd-triage',16).spin(1.6,'✻ Reading 5 inbox items…')
+  .out(say('5 items in the inbox. My proposal:'),.25)
+  .out(`<span class="dim">${row('Item','Status','Tags','New name')}</span>`,.12);
+plan.forEach(r=>x.out(esc(row(...r)),.14));
+x.out('').out('  Confirm all, or pick exceptions?').wait(2.6).type('yes',6).spin(1.1,'✻ Applying…')
+  .out(say('Done: 1 focus · 2 next · 2 someday. Logged in GTD/Log.md.')).wait(1.6);
+t=x.t; TL.term.push([t,0]); t+=.55;
+[['c5','focus','Write the quarterly report intro',['work']],['c3','next','Reply to the landlord about the heating',['home']],
+ ['c2','next','Book a dentist check-up',['health']],['c4','someday','Plan a trip to Japan',['travel']],['c1','someday','Standing desk idea',['home']]]
+ .forEach(m=>{board(t,.7,move(...m));t+=.8});
+t+=1.2;
+
+// 4 · project
+cap(t,4,'<span class="cmd">/gtd-project</span>','A big goal becomes one next step.');
+TL.term.push([t,1]);
+x=session(t).wait(.7).type('/gtd-project I want to have a tattoo',28).spin(1.2,'✻ Thinking…')
+  .out(say("How will you know it's finished? One sentence.")).wait(.9)
+  .type('a small fern on my forearm, healed',24).spin(1.5,'✻ Planning steps…')
+  .out(say('Outcome: <b>A small fern tattoo on my forearm, healed.</b>'),.2);
+[['Collect 5 reference photos','~10m'],['Call 3 studios for a quote','~20m'],['Pick a studio and pay the deposit','~30m'],
+ ['Book the date','~5m'],['Buy aftercare cream','~10m']].forEach(([s,e],i)=>x.out(`  ${i+1}. ${s} <span class="dim">${e}</span>`,.16));
+x.out('  Total ~1h 15m. Confirm, cut or reorder?').wait(2.2).type('go',6).spin(1,'✻ Writing…')
+  .out(say('Created <span class="hl">GTD/Projects/Get a tattoo.md</span>'),.15)
+  .out('  First step: <b>Collect 5 tattoo reference photos</b> (~10m)',.15)
+  .out('  Only that step is on your board.').wait(1.8);
+t=x.t; TL.term.push([t,0]);
+t=board(t+.5,.5,add('p1','next','Collect 5 tattoo reference photos',['tattoo']))+1.8;
+TL.pane.push({t,view:'project'}); t+=3.6;
+TL.pane.push({t,view:'board'}); t+=.6;
+
+// 5 · done + sweep
+cap(t,5,'Done? Drag it to done.','Then <span class="cmd">/gtd-project</span> moves the next step up.');
+t=board(t+1.2,1.2,move('p1','done'),{drag:'p1'})+1.0;
+TL.term.push([t,1]);
+x=session(t).wait(.7).type('/gtd-project',16).spin(1.3,'✻ Checking 1 project…')
+  .out(say('<b>Get a tattoo</b>: ticked ✅ Collect 5 reference photos.'),.15)
+  .out('  Next step: Call 3 studios for a quote (~20m). Promote it?').wait(1.8).type('yes',6);
+TL.projDoneAt=x.t;
+x.spin(.8,'✻ Promoting…').out(say('On your board: <b>Call 3 tattoo studios for a quote</b>.')).wait(1.6);
+t=x.t; TL.term.push([t,0]);
+t=board(t+.5,.5,add('p2','next','Call 3 tattoo studios for a quote',['tattoo']))+1.6;
+TL.pane.push({t,view:'project'}); t+=3.2;
+const END=t, DURATION=END+5;
+
+// ---------- rendering ----------
+const ids=[...new Set(TL.board.flatMap(k=>Object.keys(k.s)))];
+const cardEls={},colEls={};
+const cardHTML=c=>`<div class="tags">${c.tags.map(g=>`<span class="tag" style="background:${TAGC[g][0]};color:${TAGC[g][1]}">${g}</span>`).join('')}</div><div>${esc(c.title)}</div>`.replace('<div class="tags"></div>','');
+const hcache={};
+function measure(c){const k=c.title+'|'+c.tags;if(!(k in hcache)){$('measure').innerHTML=cardHTML(c);hcache[k]=$('measure').offsetHeight+2}return hcache[k]}
+const BT=122,BL=56,CW=186,G=10,HEAD=40,CG=6,PB=7;
+function layout(s){
+  const pos={},h={},n={};
+  COLS.forEach((col,ci)=>{
+    const list=Object.entries(s).filter(([,c])=>c.col===col).sort((a,b)=>b[1].k-a[1].k);
+    let y=BT+HEAD;
+    for(const [id,c] of list){const ch=measure(c);pos[id]={x:BL+ci*(CW+G)+7,y,h:ch};y+=ch+CG}
+    n[col]=list.length;h[col]=list.length?y-CG+PB-BT:HEAD;
+  });
+  return {pos,h,n};
+}
+function kfAt(t){let i=0;TL.board.forEach((k,j)=>{if(k.t<=t)i=j});return i}
+function progress(k,t){return k.dur?ease(clamp((t-k.t)/k.dur)):1}
+
+function init(){
+  COLS.forEach((col,ci)=>{const e=document.createElement('div');e.className='col';e.style.left=BL+ci*(CW+G)+'px';e.style.top=BT+'px';
+    e.innerHTML=`<div class="colhead"><span class="dim">⌄</span><span>${col}</span><span class="cnt">0</span><span class="acts">+⋯</span></div>`;
+    $('board').appendChild(e);colEls[col]=e});
+  ids.forEach(id=>{const e=document.createElement('div');e.className='card';e.innerHTML='<div class="in"></div>';$('board').appendChild(e);cardEls[id]=e});
+}
+
+let last={};
+function setHTML(el,key,html){if(last[key]!==html){el.innerHTML=html;last[key]=html}}
+
+function renderBoard(t){
+  const i=kfAt(t),k=TL.board[i],prev=i?TL.board[i-1].s:k.s,cur=k.s,p=progress(k,t);
+  const La=layout(prev),Lb=layout(cur);
+  COLS.forEach(col=>{colEls[col].style.height=lerp(La.h[col],Lb.h[col],p)+'px';
+    colEls[col].querySelector('.cnt').textContent=(p<.5?La:Lb).n[col]});
+  $('results').textContent=`${Object.keys(p<.5?prev:cur).length} results`;
+  for(const id of ids){
+    const el=cardEls[id],a=prev[id],b=cur[id];
+    if(!a&&!b){el.style.opacity=0;continue}
+    let P,op=1,dy=0,sc=1,c,z=1,lift=0;
+    if(a&&b){
+      const pa=La.pos[id],pb=Lb.pos[id];P={x:lerp(pa.x,pb.x,p),y:lerp(pa.y,pb.y,p),h:lerp(pa.h,pb.h,p)};
+      const changed=a.title!==b.title||a.tags.join()!==b.tags.join();
+      c=changed&&p<.5?a:b;
+      if(changed&&p<1)op=1-.75*Math.sin(Math.PI*p);
+      if(a.col!==b.col&&p<1){z=5;lift=Math.sin(Math.PI*Math.min(1,p*1.2+.1))}
+    }else if(b){P=Lb.pos[id];op=p;dy=-(1-p)*18;sc=.96+.04*p;c=b}
+    else{P=La.pos[id];op=1-p;c=a}
+    const rot=k.drag===id&&p<1?2.5*lift:0;
+    Object.assign(el.style,{left:P.x+'px',top:P.y+'px',height:P.h+'px',opacity:op,zIndex:z,
+      transform:`translateY(${dy-lift*4}px) scale(${sc+lift*.03}) rotate(${rot}deg)`,
+      boxShadow:lift?`0 ${10*lift}px ${28*lift}px rgba(0,0,0,.6)`:'none',borderColor:lift?'#7c5cff':'#3a3a3a'});
+    setHTML(el.firstChild,'c'+id,cardHTML(c));
+  }
+  // cursor for drags
+  const cur_=$('cursor');cur_.style.opacity=0;
+  TL.board.forEach((kd,j)=>{
+    if(!kd.drag||t<kd.t-.9||t>kd.t+kd.dur+.8)return;
+    const A=layout(TL.board[j-1].s).pos[kd.drag],B=layout(kd.s).pos[kd.drag];
+    const gx=90,gy=A.h/2;let cx,cy,o=1;
+    if(t<kd.t){const q=ease(clamp((t-(kd.t-.9))/.7));cx=lerp(A.x+gx+160,A.x+gx,q);cy=lerp(A.y+gy+140,A.y+gy,q);o=clamp((t-(kd.t-.9))/.3)}
+    else{const q=progress(kd,t);cx=lerp(A.x,B.x,q)+gx;cy=lerp(A.y,B.y,q)+gy;o=clamp((kd.t+kd.dur+.8-t)/.3)}
+    Object.assign(cur_.style,{left:cx+'px',top:cy+'px',opacity:o});
+  });
+}
+
+function renderPane(t){
+  let i=0;TL.pane.forEach((k,j)=>{if(k.t<=t)i=j});
+  const k=TL.pane[i],prevView=i?TL.pane[i-1].view:k.view,p=clamp((t-k.t)/.35);
+  for(const v of ['empty','board','project'])$('v-'+v).style.opacity=v===k.view?p:v===prevView?1-p:0;
+  const done=t>=TL.projDoneAt;
+  const link=n=>` → <a>${n}</a>`;
+  const steps=[['Collect 5 reference photos','~10m',link('Collect 5 tattoo reference photos')],['Call 3 studios for a quote','~20m',done?link('Call 3 tattoo studios for a quote'):''],
+    ['Pick a studio and pay the deposit','~30m',''],['Book the date','~5m',''],['Buy aftercare cream','~10m','']];
+  setHTML($('note'),'note',`<h1>Get a tattoo</h1><h2>Outcome</h2><p>A small fern tattoo on my forearm, healed.</p><h2>Steps</h2><ul class="task">`+
+    steps.map(([s,e,l],j)=>{const d=done&&j===0;return `<li class="${d?'done':''}"><span class="box">${d?'✓':''}</span><span><span class="txt">${s} <span class="est">${e}</span></span>${l}${d?' ✅ 2026-09-14':''}</span></li>`}).join('')+'</ul>');
+}
+
+function renderTerm(t){
+  let v=0,from=0;
+  for(const [kt,on] of TL.term){if(kt>t)break;const p=ease(clamp((t-kt)/.45));v=lerp(from,on,p);from=on}
+  $('term').style.transform=`translateX(${(1-v)*740}px)`;$('term').style.opacity=clamp(v*1.5);
+  let S=null;for(const s of TL.sessions)if(s.t<=t)S=s;
+  let html='<div class="welcome"><b>✻</b> Welcome to <b>Claude Code</b>!\n  <span class="dim">cwd: ~/Notes</span></div>',input=null;
+  if(S)for(const it of S.items){
+    if(it.type==='input'){if(t>=it.sub)html+=`<div class="u">&gt; ${esc(it.text)}</div>`;else if(t>=it.t)input=it.text.slice(0,Math.floor((t-it.t)*it.cps))}
+    else if(it.type==='spin'){if(t>=it.t&&t<it.until)html+=`<div class="spin">${it.text}</div>`}
+    else if(t>=it.t)html+=`<div>${it.html||' '}</div>`;
+  }
+  setHTML($('tx'),'tx',html);
+  const blink=input!==null||Math.floor(t*2)%2===0;
+  setHTML($('input'),'in',`<span class="dim">&gt;</span> ${esc(input||'')}${blink?'<span class="caret"></span>':''}`);
+}
+
+function renderCaption(t){
+  let c=null,next=1e9;TL.captions.forEach((k,j)=>{if(k.t<=t){c=k;next=TL.captions[j+1]?.t??END}});
+  const el=$('caption');
+  if(!c||t>=END){el.style.opacity=0;return}
+  setHTML(el,'cap',c.html);el.style.opacity=Math.min(clamp((t-c.t)/.35),clamp((next-t)/.35));
+}
+
+function seek(t){
+  $('titlecard').style.opacity=1-clamp((t-2.9)/.5);
+  $('endcard').style.opacity=clamp((t-END)/.6);
+  renderCaption(t);renderPane(t);renderBoard(t);renderTerm(t);
+}
+if(!navigator.webdriver&&!location.search.includes('static')){
+  addEventListener('load',()=>document.fonts.ready.then(()=>{init();const t0=performance.now();
+    const loop=()=>{seek(((performance.now()-t0)/1000)%DURATION);requestAnimationFrame(loop)};loop()}));
+}
+</script>

@@ -4,7 +4,9 @@
 
 You dump thoughts in. Claude Code sorts, tags and files them. You just decide what to do.
 
-![The GTD board in Obsidian: six columns from inbox to done, each card a short action with colored tags](docs/assets/board.png)
+[![Animated demo: install with one prompt, capture notes, /gtd-triage files them into columns, /gtd-project turns a big goal into one next step](docs/assets/demo.gif)](docs/assets/demo.mp4)
+
+*84-second demo. Click for the full-quality video.*
 
 ## Why it works for busy brains
 
@@ -37,6 +39,8 @@ It's inspired by the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555
    add a Folder Template: `GTD/Items` → `Templates/GTD Item.md`.
 
 Done. Open `GTD/Board.base` to see your board.
+
+![The GTD board in Obsidian: six columns from inbox to done, each card a short action with colored tags](docs/assets/board.png)
 
 ## Every day
 

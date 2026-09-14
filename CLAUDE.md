@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-There is no code, no build, no test suite, no dependencies. The repo is **three prose files at
+There is no product code, no build, no test suite, no dependencies (the one script,
+`docs/demo/render.mjs`, only renders the README video). The repo is **three prose files at
 the root that are really one artifact in three renderings** (plus one standalone extra) — a prompt
 that a user pastes into Claude Code at the root of their Obsidian vault, which then writes the whole
 GTD system (schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`,
@@ -18,6 +19,7 @@ The work here is editing prompt text so that it stays internally consistent acro
 | `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the **canonical text of every other skill** — gtd-triage, gtd-review, gtd-project — each byte-identical to its `install.md` section. Since v10 that is what lets a migration say "overwrite it verbatim" rather than describing an edit (see below). |
 | `import-notion.md` | **Outside the three-way sync, and deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault. Nothing fetches or embeds it, nothing version-stamps it — edit it freely, no mirroring, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because `/gtd-update` only refreshes on a schema bump, so edits never reached vaults that had already installed it. Importing happens once per vault, which is the whole argument for a prompt over a skill. |
 | `install.html` | Standalone single-page version. The entire installer prompt is a **JSON string** inside `<script type="application/json" id="prompt-data">`, injected into `#promptcode` at runtime. Not byte-identical to `install.md`: its tail folds the manual-setup steps into a final "One thing this prompt can't do for you" paragraph that `install.md` keeps as its own section. |
+| `docs/demo/` | **Outside the sync.** Source of the README demo: `demo.html` is a scripted animation (a mock of Obsidian + Claude Code, not a recording), `render.mjs` screenshots it frame by frame in headless Chrome and writes `docs/assets/demo.mp4` + `demo.gif` (needs `google-chrome`, `ffmpeg`, Node 22). Run `node docs/demo/render.mjs`; `--stills 5,30` previews single frames. The terminal dialogue paraphrases what the skills do — re-render if a skill's user-visible flow changes. |
 
 ## Schema versioning — the core invariant
 
