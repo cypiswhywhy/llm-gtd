@@ -42,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 11.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 12.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -195,6 +195,7 @@ Report which of the files below already existed and how you handled each before 
     6. **Don't touch** `.obsidian/` config or `GTD/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`.
     7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. Two exceptions are part of the schema, not deviations from it: `project` appears only on an item that is a project step, and a project note carries its own keys (`wip`, `outcome`, and no `kanban_order`). `kanban_order` is the one key with split ownership: stamp it on an item you create (minus the creation timestamp in milliseconds), and preserve any value you find untouched.
     8. **Write as the human.** Everything you put into a note — a title, a project step, a summary, a line of body text — reads as if the human wrote it for themselves: in their language, in their voice, never addressed to them. A task is named the way a person writes it on their own list, not as an order to a reader; where a language has a distinct form for that, use it (Polish "Zadzwonić do banku", not "Zadzwoń do banku"; German "Bank anrufen", not "Ruf die Bank an"). In English the bare verb ("Call the bank") already is that form. The rule covers what you write, not what the human already wrote: never rewrite their text only to change its form. Your replies in the conversation are still addressed to the human.
+    9. **Answer in the human's language, and number what you propose.** Your replies in the conversation — reports, questions, proposals — are in the language the human writes to you in; their own messages decide, not the language of this file or of the skills. Every proposal that waits for their confirmation numbers its rows `#1`, `#2`, … in one sequence across the whole proposal, so they can answer "all except #4" or "#7 → someday" without quoting a row back.
 
 ## 2. `Templates/GTD Item.md` (Templater template — the folder-template step in the manual setup applies this to every new note in `GTD/Items/`)
 
@@ -374,7 +375,7 @@ and fall below every real number.
          - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading
        - If the title isn't action-oriented, propose a rename: a short verb phrase, worded the way the human would write it on their own list (rule 8 in `CLAUDE.md`).
 
-    4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.
+    4. **Propose the batch.** Present one table: `#` (rule 9 in `CLAUDE.md`), item, proposed status, proposed tags, rename (if any), one-line rationale — one item per row, so every item has its own number. Ask the user to confirm all / pick exceptions by number.
 
     5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
 
@@ -420,8 +421,8 @@ and fall below every real number.
 
     ## Output
 
-    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
-    2. Ask the user to confirm all / pick exceptions.
+    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks), every finding numbered `#1`, `#2`, … in one sequence across the whole report (rule 9 in `CLAUDE.md`). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
+    2. Ask the user to confirm all / pick exceptions by number.
     3. Apply confirmed changes: frontmatter edits, `mv` to Archive, bump `updated` on every touched note.
     4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.
     5. Close with the 1–3 things that most need the user's attention this week.
@@ -624,6 +625,21 @@ and fall below every real number.
     5. **If the canonical source could not be read on this run, apply nothing for v11** and say so. Steps 1 and 2 need the canonical text, and skills that point at a rule 8 that isn't there are worse than no v11.
     6. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those two skill files and `CLAUDE.md` change.
 
+    ### v11 → v12 — replies in the human's language, and every proposal numbered
+
+    Two frictions came from answering a proposal. Its rows had nothing to point at, so excepting one meant quoting it back — a triage row that grouped five camera listings had to be pasted into the reply just to say "leave these". And rule 8 fixed the language of the *notes* but not of the conversation, so a vault kept in Polish got its review in English. v12 adds rule 9: replies use the language the human writes in, and every proposal numbers its rows so the answer can be "#4 — leave it".
+
+    1. **`.claude/skills/gtd-triage/SKILL.md`** — overwrite it, verbatim, with the `## The /gtd-triage skill` section of the canonical `update.md` (the file `CANONICAL_SOURCE` points at, already read by the self-check). Report the line count before and after.
+    2. **`.claude/skills/gtd-review/SKILL.md`** — the same, from the `## The /gtd-review skill` section.
+    3. **`.claude/skills/gtd-project/SKILL.md`** — the same, from the `## The /gtd-project skill` section.
+    4. **Before overwriting any of them, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking.
+    5. **`CLAUDE.md`** — append this to the end of `## Rules for the agent`, word for word, as rule 9:
+
+       > 9. **Answer in the human's language, and number what you propose.** Your replies in the conversation — reports, questions, proposals — are in the language the human writes to you in; their own messages decide, not the language of this file or of the skills. Every proposal that waits for their confirmation numbers its rows `#1`, `#2`, … in one sequence across the whole proposal, so they can answer "all except #4" or "#7 → someday" without quoting a row back.
+
+    6. **If the canonical source could not be read on this run, apply nothing for v12** and say so. Steps 1–3 need the canonical text, and skills that point at a rule 9 that isn't there are worse than no v12.
+    7. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those three skill files and `CLAUDE.md` change.
+
 ## 9. `.claude/skills/gtd-project/SKILL.md`
 
     ---
@@ -697,8 +713,8 @@ and fall below every real number.
          research worth keeping, offer the distillation from `/gtd-review`'s knowledge check.
        - The live step's item untouched for more than 14 days → say so and ask whether the step is too
          big. Offer to split it into two smaller checklist lines and promote the first.
-    4. **Propose one table** covering all projects: project, step just completed, proposed next step,
-       estimate. Ask the user to confirm all / pick exceptions.
+    4. **Propose one table** covering all projects: `#` (rule 9 in `CLAUDE.md`), project, step just
+       completed, proposed next step, estimate. Ask the user to confirm all / pick exceptions by number.
     5. **Apply** confirmed promotions, ticks and closures. Bump `updated` on every project note whose
        content changed. Append one `[project]` line per project to `GTD/Log.md`.
     6. **Report.** Lead with the promoted steps as a short list the user can act on today. Then one line
@@ -740,7 +756,7 @@ and fall below every real number.
 - Empty folders `GTD/Items/`, `GTD/Projects/` and `GTD/Archive/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v11): board, template, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v12): board, template, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 

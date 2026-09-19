@@ -229,11 +229,26 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     5. **If the canonical source could not be read on this run, apply nothing for v11** and say so. Steps 1 and 2 need the canonical text, and skills that point at a rule 8 that isn't there are worse than no v11.
     6. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those two skill files and `CLAUDE.md` change.
 
+    ### v11 → v12 — replies in the human's language, and every proposal numbered
+
+    Two frictions came from answering a proposal. Its rows had nothing to point at, so excepting one meant quoting it back — a triage row that grouped five camera listings had to be pasted into the reply just to say "leave these". And rule 8 fixed the language of the *notes* but not of the conversation, so a vault kept in Polish got its review in English. v12 adds rule 9: replies use the language the human writes in, and every proposal numbers its rows so the answer can be "#4 — leave it".
+
+    1. **`.claude/skills/gtd-triage/SKILL.md`** — overwrite it, verbatim, with the `## The /gtd-triage skill` section of the canonical `update.md` (the file `CANONICAL_SOURCE` points at, already read by the self-check). Report the line count before and after.
+    2. **`.claude/skills/gtd-review/SKILL.md`** — the same, from the `## The /gtd-review skill` section.
+    3. **`.claude/skills/gtd-project/SKILL.md`** — the same, from the `## The /gtd-project skill` section.
+    4. **Before overwriting any of them, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking.
+    5. **`CLAUDE.md`** — append this to the end of `## Rules for the agent`, word for word, as rule 9:
+
+       > 9. **Answer in the human's language, and number what you propose.** Your replies in the conversation — reports, questions, proposals — are in the language the human writes to you in; their own messages decide, not the language of this file or of the skills. Every proposal that waits for their confirmation numbers its rows `#1`, `#2`, … in one sequence across the whole proposal, so they can answer "all except #4" or "#7 → someday" without quoting a row back.
+
+    6. **If the canonical source could not be read on this run, apply nothing for v12** and say so. Steps 1–3 need the canonical text, and skills that point at a rule 9 that isn't there are worse than no v12.
+    7. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those three skill files and `CLAUDE.md` change.
+
 ---
 
 ## The `/gtd-project` skill — the canonical text
 
-v8 installs this skill and v11 replaces it. When v8 is one of the migrations being applied, write the following verbatim to `.claude/skills/gtd-project/SKILL.md`; if that path already exists, STOP and report the collision instead of overwriting it. When v11 tells you to replace the skill, overwrite the file with exactly this text.
+v8 installs this skill; v11 and v12 replace it. When v8 is one of the migrations being applied, write the following verbatim to `.claude/skills/gtd-project/SKILL.md`; if that path already exists, STOP and report the collision instead of overwriting it. When v11 or v12 tells you to replace the skill, overwrite the file with exactly this text.
 
     ---
     name: gtd-project
@@ -306,8 +321,8 @@ v8 installs this skill and v11 replaces it. When v8 is one of the migrations bei
          research worth keeping, offer the distillation from `/gtd-review`'s knowledge check.
        - The live step's item untouched for more than 14 days → say so and ask whether the step is too
          big. Offer to split it into two smaller checklist lines and promote the first.
-    4. **Propose one table** covering all projects: project, step just completed, proposed next step,
-       estimate. Ask the user to confirm all / pick exceptions.
+    4. **Propose one table** covering all projects: `#` (rule 9 in `CLAUDE.md`), project, step just
+       completed, proposed next step, estimate. Ask the user to confirm all / pick exceptions by number.
     5. **Apply** confirmed promotions, ticks and closures. Bump `updated` on every project note whose
        content changed. Append one `[project]` line per project to `GTD/Log.md`.
     6. **Report.** Lead with the promoted steps as a short list the user can act on today. Then one line
@@ -376,7 +391,7 @@ The canonical text of every skill lives in this file, which is what lets a migra
          - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading
        - If the title isn't action-oriented, propose a rename: a short verb phrase, worded the way the human would write it on their own list (rule 8 in `CLAUDE.md`).
 
-    4. **Propose the batch.** Present one table: item, proposed status, proposed tags, rename (if any), one-line rationale. Ask the user to confirm all / pick exceptions.
+    4. **Propose the batch.** Present one table: `#` (rule 9 in `CLAUDE.md`), item, proposed status, proposed tags, rename (if any), one-line rationale — one item per row, so every item has its own number. Ask the user to confirm all / pick exceptions by number.
 
     5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
 
@@ -426,8 +441,8 @@ Likewise for `.claude/skills/gtd-review/SKILL.md`.
 
     ## Output
 
-    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
-    2. Ask the user to confirm all / pick exceptions.
+    1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks), every finding numbered `#1`, `#2`, … in one sequence across the whole report (rule 9 in `CLAUDE.md`). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
+    2. Ask the user to confirm all / pick exceptions by number.
     3. Apply confirmed changes: frontmatter edits, `mv` to Archive, bump `updated` on every touched note.
     4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.
     5. Close with the 1–3 things that most need the user's attention this week.
