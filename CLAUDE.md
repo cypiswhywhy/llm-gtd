@@ -8,22 +8,22 @@ There is no product code, no build, no test suite, no dependencies (the one scri
 `docs/demo/render.mjs`, only renders the README video). The repo is **three prose files at
 the root that are really one artifact in three renderings** (plus one standalone extra) — a prompt
 that a user pastes into Claude Code at the root of their Obsidian vault, which then writes the whole
-GTD system (schema, board, template, web-clipper template, and the `/gtd-triage`, `/gtd-review`,
-`/gtd-project`, `/gtd-update` skills) into that vault. See `README.md` for the user-facing pitch.
+GTD system (schema, board, template, web-clipper template, the separate Pocket board, and the
+`/gtd-triage`, `/gtd-review`, `/gtd-project`, `/gtd-pocket`, `/gtd-pocket-import`, `/gtd-update` skills) into that vault. See `README.md` for the user-facing pitch.
 
 The work here is editing prompt text so that it stays internally consistent across all three files.
 
 | File | Role |
 |---|---|
-| `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 23 → 690). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 gtd-project skill · 10 "Also create". |
-| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the **canonical text of every other skill** — gtd-triage, gtd-review, gtd-project — each byte-identical to its `install.md` section. Since v10 that is what lets a migration say "overwrite it verbatim" rather than describing an edit (see below). |
+| `install.md` | **Source of truth.** The installer prompt lives between the two `---` markers (line 23 → 1083). Numbered sections: 1 `CLAUDE.md` schema · 2 `Templates/GTD Item.md` · 3 `GTD/Board.base` · 4 `GTD/Log.md` · 5 clipper JSON · 6 gtd-triage skill · 7 gtd-review skill · 8 gtd-update skill (**holds the migration changelog**) · 9 gtd-project skill · 10 `Pocket/Board.base` · 11 `Templates/Pocket Note.md` · 12 Pocket clipper JSON · 13 gtd-pocket skill · 14 gtd-pocket-import skill · 15 "Also create". New sections go before "Also create", never between existing ones: changelog entries cite section numbers. |
+| `update.md` | The migration prompt for already-installed vaults. Embeds the `/gtd-update` skill with a changelog that must be **identical** to `install.md` §8, plus the **canonical text of every other skill** — gtd-triage, gtd-review, gtd-project, gtd-pocket, gtd-pocket-import — each byte-identical to its `install.md` section, and (since v13) the three Pocket files plus the exact `CLAUDE.md` fragments v13 writes. Since v10 that is what lets a migration say "overwrite it verbatim" rather than describing an edit (see below). |
 | `import-notion.md` | **Outside the three-way sync, and deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault. Nothing fetches or embeds it, nothing version-stamps it — edit it freely, no mirroring, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because `/gtd-update` only refreshes on a schema bump, so edits never reached vaults that had already installed it. Importing happens once per vault, which is the whole argument for a prompt over a skill. |
 | `install.html` | Standalone single-page version. The entire installer prompt is a **JSON string** inside `<script type="application/json" id="prompt-data">`, injected into `#promptcode` at runtime. Not byte-identical to `install.md`: its tail folds the manual-setup steps into a final "One thing this prompt can't do for you" paragraph that `install.md` keeps as its own section. |
 | `docs/demo/` | **Outside the sync.** Source of the README demo: `demo.html` is a scripted animation (a mock of Obsidian + Claude Code, not a recording), `render.mjs` screenshots it frame by frame in headless Chrome and writes `docs/assets/demo.mp4` + `demo.gif` (needs `google-chrome`, `ffmpeg`, Node 22). Run `node docs/demo/render.mjs`; `--stills 5,30` previews single frames. The terminal dialogue paraphrases what the skills do — re-render if a skill's user-visible flow changes. |
 
 ## Schema versioning — the core invariant
 
-The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 12**). A schema
+The generated vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 13**). A schema
 change means appending a `### vN → vN+1` changelog entry, and that entry must land in **three places
 kept identical**:
 
@@ -31,7 +31,7 @@ kept identical**:
 2. `update.md`'s embedded `/gtd-update` skill
 3. the `install.html` `#prompt-data` JSON mirror
 
-Also bump the `Schema version:` marker in `install.md` §1, in the `install.html` JSON, and in §10's
+Also bump the `Schema version:` marker in `install.md` §1, in the `install.html` JSON, and in §15's
 final `[capture] Vault initialized (schema vN)` log line. `update.md`'s "Adding a future migration"
 section restates this.
 
@@ -75,14 +75,17 @@ then re-validates, aborting otherwise.
 
 ## Constraints the prompt text must preserve
 
-- **Vault namespacing — no exceptions.** Everything the installer writes lives under `GTD/` plus
-  `Templates/GTD Item.md`, `clipper/`, and `.claude/skills/`. Nothing in `.obsidian/`, ever, including
+- **Vault namespacing — no exceptions.** Everything the installer writes lives under `GTD/` and
+  `Pocket/` (v13) plus `Templates/GTD Item.md`, `Templates/Pocket Note.md`, `clipper/`, and
+  `.claude/skills/`. Nothing in `.obsidian/`, ever, including
   during `/gtd-update`. (v5's `GTD/Attachments/` is not an exception — it's inside `GTD/`.) v3–v5 did
   carry one exception, `.obsidian/snippets/gtd-kanban.css`; **v6 removed it** — the `Base Board` plugin
   draws no property labels, so there is nothing left to hide with CSS. The v6 migration deliberately
   leaves the now-inert snippet on disk in already-installed vaults rather than deleting a user file.
   v8 went one step further and retired v3's *creation* step as well, so a vault migrating through v3
-  today is told to skip it: **no migration path writes outside `GTD/` any more.**
+  today is told to skip it: **no migration path writes outside those paths any more.** The single
+  exception is user-invoked, not installed behaviour: `/gtd-pocket-import <folder>` (v13) reads the folder
+  the user names and moves the notes they confirm out of it into `Pocket/Notes/` — nothing else there.
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
   or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.
 - **`status` is the only completion signal** (`inbox|focus|next|someday|waiting|done`). v2 deliberately
@@ -122,6 +125,15 @@ then re-validates, aborting otherwise.
   (30 for a project already at `status: waiting`). Don't add a `last_moved` field: a stamp that some
   paths forget to write is worse than no stamp. The check proposes **one** exit per stalled project,
   never all four, and never promotes a step itself — promotion belongs to `/gtd-project`.
+- **Pocket is independent of GTD, and going there is a move** (v13). `Pocket/Notes/` has its own
+  frontmatter (`category` + `tags`, **no `status`**), its own board and its own tag vocabulary — never
+  merge the two vocabularies or add a `status` to Pocket. Only a `done` item moves, by `mv` (never a
+  copy), with a fresh `kanban_order`; nothing moves back. The Pocket board's columns are `category`
+  values: `boardColumns` lists `""` (the plugin's `(No value)` column = unsorted pile) plus four
+  starters, and `Base Board` appends a column for any other value it finds (`getColumns()` in its
+  `main.js`), so a new category never needs a `Pocket/Board.base` edit. `/gtd-pocket`'s sweep proposes only done
+  items the user could want again — lasting content, or the runners-up of a decision that recurs (holiday
+  places not chosen) — never every done item: being done is not a reason to keep something.
 - **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
   REPORT it to the user, never attempt it.
 

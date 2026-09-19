@@ -49,6 +49,8 @@ Done. Open `GTD/Board.base` to see your board.
 | `/gtd-triage` | Empties the inbox: tags each item and suggests a column. |
 | `/gtd-review` | Weekly check-up: stuck projects, stale cards, old done items archived. |
 | `/gtd-project I want to have a tattoo` | Turns a big goal into small steps. Only the first step becomes a card. |
+| `/gtd-pocket` | Moves done items worth keeping to Pocket, and files what you clipped there. |
+| `/gtd-pocket-import Reading` | Goes through a folder with you and moves the notes worth keeping to Pocket. |
 | `/gtd-update` | Pulls in the latest version of the system. |
 
 To finish something, drag its card to **done**.
@@ -64,6 +66,20 @@ looks like, then writes small steps with time estimates into a note in `GTD/Proj
 - **Run `/gtd-project` with no argument** to tick off finished steps and move the next one up.
 - **Stalled for 14 days?** `/gtd-review` names the stuck step and suggests one fix: a sweep, a smaller
   step, `waiting` on someone, or letting it go.
+
+## Things to keep: Pocket
+
+GTD is only for things to do. Pocket is for things to keep — an article you read and liked, a recipe,
+a tool. It's a separate board in `Pocket/`, with its own tags, and its columns are categories instead
+of statuses.
+
+- **Read it, drag it to done, then `/gtd-pocket`.** It proposes a category and tags, and moves the note
+  once you say yes. `/gtd-triage` and `/gtd-review` suggest it too.
+- **Already know you want to keep it?** Clip it with the Pocket web-clipper template. It lands in the
+  unsorted column until `/gtd-pocket` files it.
+- **Already have a folder of saved articles?** `/gtd-pocket-import <folder>` goes through it with you,
+  20 notes at a time, and moves only the ones you say yes to. The rest stay where they are.
+- **A new category is just a new column.** Nothing to set up.
 
 ## Coming from Notion
 
@@ -96,9 +112,13 @@ GTD/Projects/           # one note per project — never a card
 GTD/Archive/            # old done items
 GTD/Attachments/        # files an import brought along (only if needed)
 GTD/Log.md              # log of everything the AI did
+Pocket/Board.base       # Pocket board, one column per category
+Pocket/Notes/           # one note per thing you kept
 Templates/GTD Item.md   # template for new items
-clipper/                # Obsidian Web Clipper template
-.claude/skills/         # gtd-triage, gtd-review, gtd-project, gtd-update
+Templates/Pocket Note.md  # template for new Pocket notes
+clipper/                # Obsidian Web Clipper templates (GTD inbox, Pocket)
+.claude/skills/         # gtd-triage, gtd-review, gtd-project, gtd-pocket,
+                        # gtd-pocket-import, gtd-update
 ```
 
 Nothing else in your vault is read, moved or changed. If a file already exists, it stops and asks.

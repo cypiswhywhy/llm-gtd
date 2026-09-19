@@ -1,11 +1,11 @@
 # Updating an existing LLM-GTD vault
 
-A self-contained prompt for bringing a vault that **already has LLM-GTD installed** up to the current schema. Paste it into Claude Code at the vault's root. It detects the vault's schema version, applies only the migrations it's missing, refreshes the in-vault `/gtd-update` skill, and does all of it non-destructively — propose-then-apply, logged, nothing outside `GTD/` touched.
+A self-contained prompt for bringing a vault that **already has LLM-GTD installed** up to the current schema. Paste it into Claude Code at the vault's root. It detects the vault's schema version, applies only the migrations it's missing, refreshes the in-vault `/gtd-update` skill, and does all of it non-destructively — propose-then-apply, logged, nothing outside `GTD/` and `Pocket/` touched.
 
 - **Brand-new vault?** Use [`install.md`](install.md) instead — this prompt assumes an install is already present.
 - **Day to day**, the installed `/gtd-update` skill does the same job from inside the vault. This file is the canonical, always-latest copy of the changelog. As of the current skill, `/gtd-update` points a `CANONICAL_SOURCE` at *this file* and checks it on every run, so once a vault has been through this prompt once it can detect newer versions on its own (and self-refresh) instead of going stale. Running this prompt also creates/repairs the skill for vaults installed before it existed.
 
-No new plugins are needed to update — the two community plugins from `install.md` are already enabled. A migration may still *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import); the prompt tells you, it never attempts them.
+No new plugins are needed to update — the two community plugins from `install.md` are already enabled. A migration may still *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import, v13's Pocket clipper-template import); the prompt tells you, it never attempts them.
 
 ## The prompt
 
@@ -13,7 +13,7 @@ Open a terminal at the vault's root, run Claude Code, and paste this in:
 
 ---
 
-Bring this existing LLM-GTD Obsidian vault up to the latest schema version. It already has an LLM-GTD system installed (a `CLAUDE.md` schema, a `GTD/` folder with a board, a template, a clipper template, and skills). Do NOT reinstall from scratch, and do NOT read, move, retag, or modify any note outside `GTD/`. Migrate in place, propose before you apply, and log everything.
+Bring this existing LLM-GTD Obsidian vault up to the latest schema version. It already has an LLM-GTD system installed (a `CLAUDE.md` schema, a `GTD/` folder with a board, a template, a clipper template, and skills). Do NOT reinstall from scratch, and do NOT read, move, retag, or modify any note outside `GTD/` and `Pocket/`. Migrate in place, propose before you apply, and log everything.
 
 ## How versioning works
 
@@ -27,7 +27,7 @@ The vault's current schema version is the integer after `Schema version:` in the
 4. **Bump the marker** in `CLAUDE.md` to the target version (add the `Schema version:` line if it was absent).
 5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** the skill's `CANONICAL_SOURCE:` line already ships pointing at the repo's public raw `update.md` — keep that value as-is unless I tell you otherwise (I'd want a local path like `~/devel/llm-gtd/update.md` only if I'm offline or want unpushed migrations to count). This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
 6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
-7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below, and that `.claude/skills/gtd-project/SKILL.md` exists (both are printed below; create either if it's missing).
+7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below, and that `.claude/skills/gtd-project/SKILL.md`, `.claude/skills/gtd-pocket/SKILL.md` and `.claude/skills/gtd-pocket-import/SKILL.md` exist (all are printed below; create any that is missing).
 
 ## The `/gtd-update` skill — the source of truth for migrations
 
@@ -40,7 +40,7 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
 
     # GTD schema migration
 
-    Reconcile this vault to the latest LLM-GTD schema version. Follow the propose-then-apply rule in `CLAUDE.md` and never touch notes outside `GTD/`.
+    Reconcile this vault to the latest LLM-GTD schema version. Follow the propose-then-apply rule in `CLAUDE.md` and never touch notes outside `GTD/` and `Pocket/`.
 
     ## How versioning works
 
@@ -76,7 +76,7 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     3. **Determine the target** = the highest version in the changelog now in effect (the canonical one if it was fresher, else baked-in). If current ≥ target: report "already up to date (vN)" — say whether the check reached the canonical source or fell back — and stop.
 
     4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
-    5. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
+    5. **Apply** confirmed steps in version order. Never delete an item note or a Pocket note. Bump `updated` only on notes whose content actually changes.
     6. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target (add the marker line if it was absent).
     7. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
     8. **Report** what changed, the effective latest version, and whether the self-check reached the canonical source.
@@ -244,6 +244,27 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     6. **If the canonical source could not be read on this run, apply nothing for v12** and say so. Steps 1–3 need the canonical text, and skills that point at a rule 9 that isn't there are worse than no v12.
     7. **Nothing else.** No item notes, no project notes, no renames, no board, no template, no clipper, and no `updated` date moves anywhere. Only the `Schema version:` marker, those three skill files and `CLAUDE.md` change.
 
+    ### v12 → v13 — Pocket: a separate shelf for what's worth keeping
+
+    GTD was the only place anything could live, so an article that was read and worth keeping had two bad options: stay on the board as a card that is never really done, or go to `done` and disappear into `GTD/Archive/`. v13 adds **Pocket** — a second board, independent of GTD, for content to keep: its own folder, frontmatter and tag vocabulary, with one column per category instead of per status. A done item worth keeping *moves* there. The new `/gtd-pocket` skill does the move, and `/gtd-triage` and `/gtd-review` now propose it. A second new skill, `/gtd-pocket-import <folder>`, reviews an existing folder of notes with the human and moves the ones worth keeping.
+
+    The migration only adds. No item or project note is touched, no `updated` date moves, and `GTD/Board.base`, `Templates/GTD Item.md` and the GTD clipper template stay as they are.
+
+    Every new text below is printed in full in the canonical `update.md` — the file `CANONICAL_SOURCE` points at, already read by the self-check — and in `install.md`. Take it from there, verbatim. **If the canonical source could not be read on this run, apply nothing for v13** and say so: new files cannot be reconstructed from a changelog entry, and half a Pocket is worse than none.
+
+    1. **`Pocket/Notes/`** — create the folder.
+    2. **`Pocket/Board.base`**, **`Templates/Pocket Note.md`**, **`clipper/pocket-clipper-template.json`** — create each verbatim from the `## The Pocket files` section of the canonical `update.md`. One sanctioned deviation: if the human writes to you in a language other than English, name the four starter categories in `Pocket/Board.base` in that language (lowercase, kebab-case). If any of these paths already exists, STOP and report the collision instead of overwriting.
+    3. **`.claude/skills/gtd-pocket/SKILL.md`** and **`.claude/skills/gtd-pocket-import/SKILL.md`** — create each verbatim from its `## The /gtd-pocket skill` / `## The /gtd-pocket-import skill` section. If either path already exists, STOP and report the collision.
+    4. **`.claude/skills/gtd-triage/SKILL.md`** and **`.claude/skills/gtd-review/SKILL.md`** — overwrite each, verbatim, with its `## The /gtd-triage skill` / `## The /gtd-review skill` section. Before overwriting, check for content that is *not* in the canonical text — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking. Report the line counts before and after.
+    5. **`CLAUDE.md`** — make exactly the edits listed under **CLAUDE.md edits for v13** in the `## The Pocket files` section: the Layout block, the new `## Pocket` section, three Operations bullets and rules 1, 5, 6 and 7, each replaced word for word.
+    6. **`GTD/Log.md`** — add `[pocket]` to the `Ops:` line in the header, after `[project]`.
+    7. **`README.md`** — if the vault has an `## LLM-GTD` section, add a short paragraph: Pocket is a separate board (`Pocket/Board.base`, one column per category) for content worth keeping once its task is done; `/gtd-pocket` moves a done item there with a category and tags, and with no argument files Pocket's unsorted notes and suggests done items to keep; `clipper/pocket-clipper-template.json` clips straight into Pocket; `/gtd-pocket-import <folder>` reviews an existing folder with the human and moves the notes worth keeping.
+    8. **Nothing else.** Nothing is written outside `GTD/`, `Pocket/`, `Templates/Pocket Note.md`, `clipper/`, `.claude/skills/`, `CLAUDE.md` and `README.md`. The migration imports nothing — `/gtd-pocket-import` only runs when the human asks for it.
+
+    Manual step to REPORT to the user (only if they want to clip straight into Pocket — the extension can't be scripted):
+
+    - **Import the Pocket clipper template:** Web Clipper extension → Settings → Templates → import `clipper/pocket-clipper-template.json`. The existing `GTD Inbox` template stays as it is.
+
 ---
 
 ## The `/gtd-project` skill — the canonical text
@@ -382,20 +403,20 @@ The canonical text of every skill lives in this file, which is what lets a migra
 
     3. **Enrich each item:**
        - If `source` has a URL and the body is empty or just a raw clip: fetch the URL and write a 2–4 sentence summary into the body, in the human's own voice (rule 8 in `CLAUDE.md`); keep any existing user text above it and put the summary under a `## Summary` heading. If the fetch fails, note that and move on — never block the batch.
-       - Suggest tags from the vocabulary (new tag only if nothing fits).
+       - Suggest tags from the vocabulary (new tag only if nothing fits). A row proposed `→ Pocket` takes its category and tags from the Pocket vocabulary instead (every `category` and `tags` value in `Pocket/Notes/`).
        - Propose a destination status using GTD clarification rules:
          - actionable and quick (~2 min) → suggest the user just does it now; otherwise `next`
          - actionable but the user is actively on it → `focus` (warn if Focus would exceed 5 items)
          - blocked on someone/something else → `waiting`
          - "maybe someday", no commitment → `someday`
-         - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading
+         - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading; if it is worth keeping for good, propose `→ Pocket` with a category and Pocket tags instead (the `## Pocket` section of `CLAUDE.md`)
        - If the title isn't action-oriented, propose a rename: a short verb phrase, worded the way the human would write it on their own list (rule 8 in `CLAUDE.md`).
 
     4. **Propose the batch.** Present one table: `#` (rule 9 in `CLAUDE.md`), item, proposed status, proposed tags, rename (if any), one-line rationale — one item per row, so every item has its own number. Ask the user to confirm all / pick exceptions by number.
 
-    5. **Apply confirmed changes only:** update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
+    5. **Apply confirmed changes only.** A confirmed `→ Pocket` row is moved exactly as the `## Pocket` section of `CLAUDE.md` describes and skips the rest of this step. For every other row: update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
 
-    6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] "<title>" → <status> (tags: ...)`.
+    6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] "<title>" → <status> (tags: ...)`, or `YYYY-MM-DD HH:MM [pocket] "<title>" → Pocket/<category> (tags: ...)` for a row moved to Pocket.
 
     7. **Report.** Summarize what moved where, and mention anything the user should decide later.
 
@@ -407,7 +428,7 @@ Likewise for `.claude/skills/gtd-review/SKILL.md`.
 
     ---
     name: gtd-review
-    description: GTD weekly review / lint pass — surface stalled projects, flag stale items, archive old done items, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
+    description: GTD weekly review / lint pass — surface stalled projects, flag stale items, archive old done items or move the ones worth keeping to Pocket, resurface someday items, spot duplicates. Use when the user asks for a review, weekly review, cleanup, or "what's rotting".
     ---
 
     # GTD review (lint pass)
@@ -437,15 +458,339 @@ Likewise for `.claude/skills/gtd-review/SKILL.md`.
     6. **Someday resurface** — pick up to 5 `someday` items (oldest `updated` first) and ask whether any should become `next` or be closed.
     7. **Archive** — `status: done` with `updated` older than 30 days → move the file to `GTD/Archive/` (plain `mv`, keep the name).
     8. **Hygiene** — items with no tags, near-duplicate titles, frontmatter that deviates from the schema in `CLAUDE.md`.
-    9. **Knowledge distillation** — for done items whose body holds lasting research (e.g. product comparisons, findings), offer to extract the essence into a permanent note outside `GTD/` (e.g. a `Wiki/` note) and link it from the item before it gets archived.
+    9. **Keep in Pocket** — for done items the human could want again — content worth keeping (a clipped article, a recipe, research) or an option collected for a decision that can come up again (the holiday places that weren't chosen) — propose moving them to Pocket instead of the archive, with a category and tags from the Pocket vocabulary (every `category` and `tags` value in `Pocket/Notes/`). A row confirmed here is moved exactly as the `## Pocket` section of `CLAUDE.md` describes, and check 7 skips it.
 
     ## Output
 
     1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks), every finding numbered `#1`, `#2`, … in one sequence across the whole report (rule 9 in `CLAUDE.md`). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
     2. Ask the user to confirm all / pick exceptions by number.
-    3. Apply confirmed changes: frontmatter edits, `mv` to Archive, bump `updated` on every touched note.
-    4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item.
+    3. Apply confirmed changes: frontmatter edits, `mv` to Archive or Pocket, bump `updated` on every touched note.
+    4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item and one `[pocket]` line per item moved to Pocket.
     5. Close with the 1–3 things that most need the user's attention this week.
+
+---
+
+## The `/gtd-pocket` skill — the canonical text
+
+v13 installs this skill. When v13 is one of the migrations being applied, write the following verbatim to `.claude/skills/gtd-pocket/SKILL.md`; if that path already exists, STOP and report the collision instead of overwriting it.
+
+    ---
+    name: gtd-pocket
+    description: Keep content in Pocket — move done GTD items worth keeping into Pocket/Notes/ with a category and tags, and file Pocket's unsorted notes. Use when the user wants to keep, save or shelve an article or note they've finished with, move something to Pocket, or sort their Pocket.
+    ---
+
+    # Pocket — keep what's worth keeping
+
+    GTD holds things to do; Pocket holds things to keep. This skill moves finished GTD items into
+    `Pocket/Notes/` and files Pocket notes into categories. Follow the schema and the rules in the
+    vault's `CLAUDE.md` — in particular the `## Pocket` section, which defines a Pocket note and exactly
+    how an item moves — and the propose-then-apply rule.
+
+    ## Modes
+
+    - **`/gtd-pocket <item names or a description>`** — move those items. Look them up in `GTD/Items/`
+      and `GTD/Archive/`; if a description matches more than one, list the matches and ask.
+    - **`/gtd-pocket`** with no argument — a sweep of two groups:
+      1. **Unsorted** — every note in `Pocket/Notes/` with an empty or missing `category`.
+      2. **Candidates** — `status: done` items in `GTD/Items/` that look worth keeping, and only those.
+         Being done is not a reason to keep something, and neither is a `source` URL on its own. The
+         question for each item is whether the human could want it again. Propose it when:
+         - its content has lasting value — an article, a recipe, research findings, a reference; or
+         - it is an option collected for a decision that can come up again — a holiday place, a
+           restaurant, a product, a contractor. Choosing one doesn't make the others worthless: the
+           runners-up are the next shortlist. List such items under one heading per decision (still
+           one numbered row each), so the human can take all, some or none of them in one answer.
+
+         A finished chore, a call, a payment, or a link to a one-off form stays out. Every candidate
+         carries a one-line reason. Items not proposed stay in GTD, and `/gtd-review` archives them as
+         usual.
+
+    ## Steps
+
+    1. **Build the Pocket vocabulary.** Every `category` value used across `Pocket/Notes/`, plus the
+       entries under `boardColumns:` in `Pocket/Board.base` (read it, never write it); every `tags` value
+       used across `Pocket/Notes/`. GTD tags are not part of it.
+    2. **Collect** the notes for the mode. Nothing to do → say so and stop.
+    3. **Read each note**, frontmatter and body. If the body is empty and `source` is a URL, fetch it so
+       the category and tags describe the actual content; if the fetch fails, say so and carry on.
+    4. **Propose one table**: `#` (rule 9 in `CLAUDE.md`), note, where it is now, category, tags, rename
+       (if any), and for a sweep candidate the reason it is worth keeping — one note per row. Mark a category or tag that doesn't exist yet as **new**, and an item
+       that isn't `done` as **marks it done first**.
+       - **Category:** exactly one. Reuse an existing one; propose a new one only when none fits, named
+         in the same language and style as the existing ones.
+       - **Tags:** one to four from the Pocket vocabulary; a new tag only when nothing fits.
+       - **Rename:** only when the title names a task rather than the content, and only when no note in
+         the vault links to it by name (search for `[[<name>]]` and `[[<name>|`). Word it per rule 8.
+    5. **Apply confirmed rows only.**
+       - **A GTD item** moves exactly as the `## Pocket` section of `CLAUDE.md` describes: `mv` it to
+         `Pocket/Notes/` (under the confirmed new name, if any), rewrite its frontmatter to the Pocket
+         shape, `updated` today, `kanban_order` stamped fresh with minus the move time in milliseconds.
+       - **An unsorted Pocket note:** set `category` and `tags`, bump `updated`, and backfill gaps — a
+         missing `created` becomes the file-creation date, a missing `source` key an empty `source:`, a
+         missing `kanban_order` minus the file-creation time in milliseconds. Never change a
+         `kanban_order` that is already there.
+    6. **Log** one line per note in `GTD/Log.md`: `YYYY-MM-DD HH:MM [pocket] "<title>" GTD/Items →
+       Pocket/<category> (tags: ...)` for a move, `YYYY-MM-DD HH:MM [pocket] "<title>" filed →
+       <category> (tags: ...)` for a Pocket note.
+    7. **Report** what moved where. Name any new category: its column appears at the right-hand end of
+       the Pocket board, and the human can drag it into place.
+
+    ## Guard clauses
+
+    - **Never delete, never copy.** An item moves into Pocket; nothing is left behind in GTD, and no
+      Pocket note is ever removed.
+    - **Never move a live project step** — an item with `project:` set that isn't `done`. A done step
+      may move, but is never renamed: its project's checklist links to it by name.
+    - If a note of the same name already exists in `Pocket/Notes/`, don't overwrite it — propose a
+      distinguishing name.
+    - A GTD tag reaches a Pocket note only when the same tag is already in the Pocket vocabulary.
+    - Never touch `Pocket/Board.base`, `GTD/Board.base`, `.obsidian/`, or any note outside `GTD/` and
+      `Pocket/`.
+
+---
+
+## The `/gtd-pocket-import` skill — the canonical text
+
+v13 installs this skill too. Write the following verbatim to `.claude/skills/gtd-pocket-import/SKILL.md`; if that path already exists, STOP and report the collision instead of overwriting it.
+
+    ---
+    name: gtd-pocket-import
+    description: Review every note in a vault folder together with the user and move the ones worth keeping into Pocket, leaving the rest where they are. Use when the user runs /gtd-pocket-import <folder>, or asks to bring an existing folder of articles, clippings or reading notes into Pocket.
+    ---
+
+    # Pocket import — review a folder, keep what's worth keeping
+
+    `/gtd-pocket-import <folder>` goes through the notes in a folder the human names, recommends for
+    each one whether it belongs in Pocket, and moves only the ones the human confirms. Everything else
+    stays where it was, untouched. Follow the schema and the rules in the vault's `CLAUDE.md` — the
+    `## Pocket` section and the propose-then-apply rule.
+
+    This is the one operation that touches notes outside `GTD/` and `Pocket/`, and only because the
+    human named the folder. It never goes beyond that folder, and the only thing it ever does there is
+    move a confirmed note out of it.
+
+    ## Steps
+
+    1. **Check the folder.** No argument → ask for one. It must exist and must not be, or lie inside,
+       `GTD/`, `Pocket/`, `Templates/`, `clipper/`, `.claude/` or `.obsidian/` — otherwise say why and
+       stop. List the markdown notes in it; other files (images, PDFs) are never moved. If it has
+       subfolders, say how many notes each holds and ask whether to include them. No notes → say so
+       and stop.
+    2. **Build the Pocket vocabulary** exactly as `/gtd-pocket` does: every `category` and `tags` value
+       in `Pocket/Notes/`, plus the entries under `boardColumns:` in `Pocket/Board.base` (read it, never
+       write it).
+    3. **Review in batches of 20**, oldest first. Read each note's frontmatter and body (fetch its
+       `source` URL only when the body is empty) and recommend one of:
+       - **→ Pocket** — something the human could want again: content with lasting value (an article,
+         a clipping, a recipe, a reference, research), or an option worth having next time (a place, a
+         product, a contractor). Propose a category and tags from the Pocket vocabulary, per the `## Pocket` section.
+       - **leave** — anything else: personal notes, journals, meeting notes, drafts, tasks, notes that
+         belong to another system, content that has gone stale.
+       - **?** — when the note itself can't decide it; give the one question that would.
+
+       Also flag a note that another note links to **by path** (`[[<folder>/<name>`): moving it breaks
+       that link. Links by name alone survive the move.
+    4. **Propose the batch** as one table: `#` (rule 9 in `CLAUDE.md`), note, recommendation, category,
+       tags, a one-line reason — and say how many batches remain. Wait. The human's answer decides, not
+       the recommendation.
+    5. **Apply the confirmed → Pocket rows only.** For each:
+       - `mv` it to `Pocket/Notes/`, keeping the name. A note of that name already there → don't
+         overwrite; propose a distinguishing name.
+       - Set the Pocket keys: `category` and `tags` as confirmed (tags the note already had are shown in
+         the proposal and kept only where confirmed); `created` kept if present, else taken from an
+         existing date key such as `date`, else the file-creation date; `source` kept if present, else
+         taken from an existing `url` or `link` key, else empty; `updated` today; `kanban_order` minus
+         the move time in milliseconds.
+       - Every other key the note arrived with stays exactly as it was — except `status`, which a
+         Pocket note never carries: show it in the proposal and drop it.
+       - The body is not touched and the note is not renamed.
+
+       Then go on to the next batch. The human may stop at any batch; running the command again picks
+       up whatever is still in the folder.
+    6. **Log** one line per moved note in `GTD/Log.md`: `YYYY-MM-DD HH:MM [pocket] "<title>" <folder> →
+       Pocket/<category> (tags: ...)`, and at the end one line `YYYY-MM-DD HH:MM [pocket] import
+       <folder>: N moved, M left`.
+    7. **Report** how many notes went to each category and how many stayed. Name any new category: its
+       column appears at the right-hand end of the Pocket board.
+
+    ## Guard clauses
+
+    - **Leaving means untouched.** A note that stays gets no new key, no tag and no `updated` bump.
+    - **Never delete, never copy.** A confirmed note moves; nothing else happens in the folder.
+    - Never move a file that isn't a markdown note, and never read or move anything outside the named
+      folder (and its subfolders, if the human included them).
+    - Never touch `Pocket/Board.base`, `GTD/Board.base` or `.obsidian/`.
+
+---
+
+## The Pocket files — the canonical text
+
+v13 creates these three files. Write each verbatim; if a path already exists, STOP and report the collision. The one sanctioned deviation: when the human writes to you in a language other than English, name the four starter categories under `boardColumns:` in that language (lowercase, kebab-case).
+
+`Pocket/Board.base`:
+
+    filters:
+      and:
+        - file.inFolder("Pocket/Notes")
+    properties:
+      note.category:
+        displayName: Category
+      note.tags:
+        displayName: Tags
+      note.created:
+        displayName: Created
+      note.updated:
+        displayName: Updated
+      note.source:
+        displayName: Source
+    views:
+      - type: kanban
+        name: Board
+        groupBy:
+          property: category
+          direction: ASC
+        order:
+          - file.name
+        newItemFolder: Pocket/Notes
+        newItemTemplate: Templates/Pocket Note.md
+        newCardsToTop: true
+        boardColumns:
+          - ""
+          - articles
+          - reference
+          - ideas
+          - tools
+      - type: table
+        name: All notes
+        order:
+          - file.name
+          - category
+          - tags
+          - source
+          - updated
+        sort:
+          - property: updated
+            direction: DESC
+
+`Templates/Pocket Note.md`:
+
+    ---
+    category:
+    tags: []
+    created: <% tp.date.now("YYYY-MM-DD") %>
+    updated: <% tp.date.now("YYYY-MM-DD") %>
+    source:
+    kanban_order: <% -1 * Number(tp.date.now("x")) %>
+    ---
+
+`clipper/pocket-clipper-template.json`:
+
+    {
+      "schemaVersion": "0.1.0",
+      "name": "Pocket",
+      "behavior": "create",
+      "noteNameFormat": "{{title}}",
+      "path": "Pocket/Notes",
+      "context": "",
+      "noteContentFormat": "{{content}}",
+      "properties": [
+        { "name": "category", "value": "", "type": "text" },
+        { "name": "tags", "value": "", "type": "multitext" },
+        { "name": "created", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
+        { "name": "updated", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
+        { "name": "source", "value": "{{url}}", "type": "text" },
+        { "name": "kanban_order", "value": "{{date|date:\"x\"|calc:\"*-1\"}}", "type": "number" }
+      ],
+      "triggers": []
+    }
+
+### CLAUDE.md edits for v13
+
+Word for word, each in place; everything else in `CLAUDE.md` stays as it is.
+
+1. **Layout** — replace the fenced block under `## Layout` with:
+
+        ```
+        GTD/Board.base    # kanban board (Bases + Base Board plugin) + Inbox/Stale/All views
+        GTD/Items/        # one markdown note per GTD item — the ONLY place items live
+        GTD/Projects/     # one note per project — the plan for a multi-step outcome, never on the board
+        GTD/Archive/      # old done items, moved here by review
+        GTD/Attachments/  # files an import brought with it — created on demand
+        GTD/Log.md        # append-only activity log (GTD and Pocket)
+        Pocket/Board.base # Pocket board — one column per category + All view
+        Pocket/Notes/     # one note per piece of content worth keeping — the ONLY place Pocket notes live
+        Templates/GTD Item.md     # Templater template for new items
+        Templates/Pocket Note.md  # Templater template for the Pocket board's + button
+        clipper/          # Obsidian Web Clipper templates (GTD inbox, Pocket)
+        ```
+
+2. **`## Pocket`** — insert this section right before `## Operations`:
+
+        ## Pocket
+
+        **Pocket** is the human's shelf of content worth keeping — an article, a recipe, a tool, a
+        reference. GTD holds only things *to do*; Pocket holds things *to keep*. The usual path: an article
+        is captured into GTD, read, dragged to `done`, and — if it is worth keeping — moved to Pocket. Content
+        can also skip GTD and go straight into Pocket through the Pocket web-clipper template.
+
+        Pocket is **independent of GTD**: its own folder (`Pocket/Notes/`), its own board
+        (`Pocket/Board.base`), its own frontmatter and its own tag vocabulary. A Pocket note is not an item:
+        it has no `status`, never appears on the GTD board, and is never archived.
+
+        Pocket note frontmatter:
+
+        ```yaml
+        ---
+        category: articles   # the Pocket board column — exactly one value, or empty while unsorted
+        tags: []             # Pocket's own vocabulary — lowercase, kebab-case, never mixed with GTD tags
+        created: YYYY-MM-DD  # when the content was first captured — carried over from the GTD item
+        updated: YYYY-MM-DD
+        source:              # URL for web content; empty otherwise
+        kanban_order: -1786636800000   # Pocket board sort key — same write-once rule as on items
+        ---
+        ```
+
+        `category` decides the column. The board starts with the categories listed in `Pocket/Board.base`
+        (`articles`, `reference`, `ideas`, `tools`, or their equivalents in the human's language). Reuse an
+        existing category before inventing one. A new value needs no board edit: `Base Board` adds a column
+        for it at the right-hand end, and the human drags columns into order. An empty `category` puts the
+        note in the first column, `(No value)` — Pocket's unsorted pile, filled by the Pocket clipper and the
+        board's `+` button, and emptied by `/gtd-pocket`. Categories are few and broad (the column is where
+        you look); tags are many and narrow (the filter is how you find).
+
+        Moving an item from GTD to Pocket — `/gtd-pocket` does it, `/gtd-triage` and `/gtd-review` propose it:
+
+        1. **Only a `status: done` item moves.** Something still to be done stays in GTD. If the human wants
+           to keep an item that isn't done, the same proposal marks it done first.
+        2. **The file moves, it is not copied** — `mv` from `GTD/Items/` (or `GTD/Archive/`) to
+           `Pocket/Notes/`, keeping the name, so nothing is left behind in GTD.
+        3. **The frontmatter becomes a Pocket note's**: `status` and `project` are dropped; `created` and
+           `source` are kept; `category` and `tags` are set from the Pocket vocabulary (the GTD tags are
+           dropped — they described the task, not the content); `updated` is today; `kanban_order` is stamped
+           fresh with minus the move time in milliseconds, because it is a new card on a new board and should
+           land at the top of its column.
+        4. **The body is kept as it is.** The title may be renamed from the task to the content (`Read Paul
+           Graham's essay on great work` → `How to Do Great Work (Paul Graham)`), but only when no note links
+           to it by name — a rename breaks those links.
+
+        Notes can also come from elsewhere in the vault: `/gtd-pocket-import <folder>` reviews a folder the
+        human names and moves only the notes they confirm. An imported note keeps any frontmatter keys it
+        arrived with, except `status`, alongside the Pocket ones.
+
+        A Pocket note never moves back into GTD. To act on it again, capture a new item that links to it.
+
+3. **Operations** — insert the first two bullets right after the **project** bullet, and replace the **query** bullet with the third:
+
+        - **pocket** (`/gtd-pocket`) — keep content: move done items from GTD into `Pocket/Notes/` with a category and tags, and sort Pocket's unsorted pile. Given item names it moves those; with no argument it sorts the `(No value)` column and lists done items that look worth keeping.
+        - **pocket import** (`/gtd-pocket-import <folder>`) — review every note in a folder the human names, recommend Pocket or leave for each, and move only the confirmed ones into `Pocket/Notes/`. The rest stay untouched.
+        - **query** — answer questions from item and Pocket notes ("what am I waiting for?", "what did I keep about sleep?"). Read-only.
+
+4. **Rules for the agent** — replace rules 1, 5, 6 and 7 with:
+
+        1. **Never delete** an item note, a project note or a Pocket note. Cancelled → `status: done` with a `Cancelled: <reason>` line in the body. Old done items → move to `GTD/Archive/`.
+        5. **Keep the tag vocabularies tight — there are two, and they never mix.** Before tagging an item, list tags already used across `GTD/Items/` and `GTD/Archive/`; before tagging a Pocket note, list those used across `Pocket/Notes/`. Reuse from the matching vocabulary; introduce a new tag only when nothing there fits.
+        6. **Don't touch** `.obsidian/` config, `GTD/Board.base` or `Pocket/Board.base`, ever — not during item operations, and not during `/gtd-update`. Everything this system writes lives under `GTD/`, `Pocket/`, `Templates/GTD Item.md`, `Templates/Pocket Note.md`, `clipper/`, and `.claude/skills/`. The one exception is `/gtd-pocket-import`: it reads the folder the human names and moves the notes they confirm out of it into `Pocket/Notes/`, and does nothing else there.
+        7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. Three exceptions are part of the schema, not deviations from it: `project` appears only on an item that is a project step, a project note carries its own keys (`wip`, `outcome`, and no `kanban_order`), and a Pocket note carries its own (`category`, and no `status`) — plus, if it was imported, the keys it arrived with. `kanban_order` is the one key with split ownership: stamp it on an item or Pocket note you create (minus the creation timestamp in milliseconds) and on a note you move into Pocket (minus the move time), and preserve any value you find untouched.
 
 ---
 
