@@ -101,6 +101,26 @@ of statuses.
 It shows you how your Notion statuses map to the board and writes nothing until you say yes.
 Long-finished items go straight to the archive, so the board opens clean.
 
+## Board lost its tag colors? (Obsidian 1.14+)
+
+Obsidian 1.14 added its own kanban view under the same name `Base Board` uses, so it now draws
+your boards instead: tags lose their colors, columns stop collapsing. Until the plugin fixes it
+([issue #62](https://github.com/mderazon/obsidian-base-board/issues/62)), run `claude` in the vault
+folder and paste this:
+
+```text
+Fix my board for Obsidian 1.14.
+
+1. Download this file with curl and read all of it:
+   https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/fix-native-kanban.md
+   (Don't use a web-fetch tool. It summarizes.)
+2. Follow the prompt between its two `---` lines exactly,
+   as if I had pasted it in.
+```
+
+It patches your copy of the plugin and both boards, after you say yes. Run it again if a
+`Base Board` update brings the problem back.
+
 <details>
 <summary><b>What it adds to your vault</b></summary>
 
@@ -136,6 +156,7 @@ you; you never need to open these files.
 | [`install.md`](install.md) | Set up a vault. |
 | [`update.md`](update.md) | Upgrade a vault installed earlier. `/gtd-update` does this for you. |
 | [`import-notion.md`](import-notion.md) | Move in from Notion or a CSV, once. |
+| [`fix-native-kanban.md`](fix-native-kanban.md) | Get the `Base Board` look back on Obsidian 1.14+. |
 | [`install.html`](install.html) | Read the installer as a web page with a copy button. |
 
 `/gtd-update` checks this repo on every run, so installed vaults stay current. Maintainer notes
