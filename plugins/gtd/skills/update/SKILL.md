@@ -15,7 +15,7 @@ The skills themselves need no migrating: they come from the plugin, and updating
 
 2. **Older than v15?** The vault predates the plugin. Its migrations live in the repo's `update.md`: fetch https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/update.md and follow that prompt instead of this skill — it ends at v15. Then come back here for anything newer.
 
-3. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
+3. **Determine the target** = 15, the schema this plugin installs, or the highest entry in the changelog below if that is higher. If current ≥ target: report "already up to date (vN)" and stop.
 
 4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
 

@@ -21,7 +21,7 @@ mirror any more.
 | `plugins/gtd/.claude-plugin/plugin.json` | The plugin manifest. Its `version` is the release switch (see "Releasing" below). |
 | `plugins/gtd/skills/<name>/SKILL.md` | The skills, one file each. The vault holds no copy, so editing one needs no migration. |
 | `plugins/gtd/vault/` | **Every file `/gtd:install` copies, byte for byte**: `CLAUDE.md` (the vault schema; appended if the vault has one), `README.md` (appended likewise), both `Board.base`, `GTD/Log.md`, both templates, both clipper JSONs. Change a file here and you change new installs; existing vaults need a migration. |
-| `update.md` | **Frozen at v15.** The migration prompt for vaults installed before the plugin (v1–v14), still fetched by their old in-vault `/gtd-update` from `main`. Its last entry, v14 → v15, installs the plugin and deletes the in-vault skills. It keeps the canonical text of the old skills because entries v8 and v10–v14 point at it. Don't edit it except to fix a bug in the path to v15. |
+| `update.md` | **Frozen at v15.** The migration prompt for vaults installed before the plugin (v1–v14), still fetched by their old in-vault `/gtd-update` from `main`. Its last entry, v14 → v15, installs the plugin and deletes the in-vault skills. It keeps the canonical text of the old skills (v15 checks them for local additions before deleting) and its own snapshot of the v15 `CLAUDE.md` and `README.md` — never let it fetch from `plugins/gtd/vault/`, which later versions change. Don't edit it except to fix a bug in the path to v15. |
 | `install.md`, `install.html` | Short install instructions, as markdown and as a web page. `install.html`'s copy button copies the JSON string in `#prompt-data` — the two install commands. |
 | `import-notion.md` | **Deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault — edit it freely, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because skills then only refreshed on a schema bump. Plugin skills don't have that problem any more, but importing still happens once per vault, which is the argument for a prompt over a skill. |
 | `fix-native-kanban.md` | **Same reasoning as `import-notion.md`.** Opt-in paste-in prompt for Obsidian 1.14+, whose native Bases kanban registered the same view type `kanban` as `Base Board` and took over the boards. Patches the vault's copy of the plugin to register `base-board` and switches only views with Base Board keys. Temporary: once upstream [issue #62](https://github.com/mderazon/obsidian-base-board/issues/62) ships, the real fix is a schema migration moving the boards to upstream's new type, and this file goes. |
@@ -78,7 +78,7 @@ may differ.
   `fix-native-kanban.md` is the other user-invoked one: it edits
   `.obsidian/plugins/base-board/main.js` (backup first), and only when pasted in.
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
-  or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.
+  or stop and report the collision (`GTD/`, `Pocket/`, the templates, the clipper templates). Never overwrite.
 - **`status` is the only completion signal** (`inbox|focus|next|someday|waiting|done`). v2 deliberately
   removed the redundant `done:` boolean; don't reintroduce a second completion field.
 - **`GTD/Board.base` kanban view's `order:` must list `file.name` and nothing else.** Since v6 the board
