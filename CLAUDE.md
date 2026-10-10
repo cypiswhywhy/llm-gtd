@@ -134,3 +134,5 @@ A pushed commit reaches **nobody** until `version` in `plugins/gtd/.claude-plugi
 the field pins every installed copy to that version. Bump it to release; users get it on their next
 plugin update. That makes half-finished work on `main` safe — except in `update.md`, which old
 in-vault `/gtd-update` skills still fetch from `main` on every run, so a push there is live at once.
+
+<!-- engineering-practices: off -->
