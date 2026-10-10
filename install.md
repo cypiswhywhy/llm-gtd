@@ -42,7 +42,7 @@ Report which of the files below already existed and how you handled each before 
 
     This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-    **Schema version: 13.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+    **Schema version: 14.** Version marker for migrations — the `/gtd-update` skill and the repo's `update.md` read the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
     ## Layout
 
@@ -409,20 +409,20 @@ and fall below every real number.
 
     ---
     name: gtd-triage
-    description: Process the GTD inbox — enrich, tag, and route items to kanban columns. Use when the user wants to clear or triage their inbox, or asks "what's in my inbox".
+    description: Process the GTD inbox in batches of 10 — enrich, tag, and route items to kanban columns. Use when the user wants to clear or triage their inbox, or asks "what's in my inbox".
     ---
 
     # GTD inbox triage
 
-    Process every item with `status: inbox` in `GTD/Items/`. Follow the schema and rules in the vault's `CLAUDE.md`.
+    Process every item with `status: inbox` in `GTD/Items/`, at most 10 at a time, so no proposal is a wall of decisions. Follow the schema and rules in the vault's `CLAUDE.md`.
 
     ## Steps
 
-    1. **Collect.** Read frontmatter of all notes in `GTD/Items/`; select those with `status: inbox`, oldest `created` first. Some hand-made notes may lack `created` or `source` — for ordering, treat a missing `created` as the note's file-creation date. If none: say the inbox is empty and stop.
+    1. **Collect.** Read frontmatter of all notes in `GTD/Items/`; select those with `status: inbox`, oldest `created` first. Some hand-made notes may lack `created` or `source` — for ordering, treat a missing `created` as the note's file-creation date. If none: say the inbox is empty and stop. Otherwise the first 10 are this batch — or as many as the user asked for (`/gtd-triage 20`); the rest wait for the next one. Steps 2–7 handle one batch.
 
-    2. **Build the tag vocabulary.** Gather all `tags` used across `GTD/Items/` and `GTD/Archive/` so suggestions reuse existing tags.
+    2. **Build the tag vocabulary.** Gather all `tags` used across `GTD/Items/` and `GTD/Archive/` so suggestions reuse existing tags. Rebuild it for every batch, so a tag added in one batch is reused in the next.
 
-    3. **Enrich each item:**
+    3. **Enrich each item in the batch:**
        - If `source` has a URL and the body is empty or just a raw clip: fetch the URL and write a 2–4 sentence summary into the body, in the human's own voice (rule 8 in `CLAUDE.md`); keep any existing user text above it and put the summary under a `## Summary` heading. If the fetch fails, note that and move on — never block the batch.
        - Suggest tags from the vocabulary (new tag only if nothing fits). A row proposed `→ Pocket` takes its category and tags from the Pocket vocabulary instead (every `category` and `tags` value in `Pocket/Notes/`).
        - Propose a destination status using GTD clarification rules:
@@ -433,13 +433,15 @@ and fall below every real number.
          - pure reference with no action (e.g. an interesting read already skimmed) → propose `done` after distilling the useful part into the body, or keeping it as `someday` reading; if it is worth keeping for good, propose `→ Pocket` with a category and Pocket tags instead (the `## Pocket` section of `CLAUDE.md`)
        - If the title isn't action-oriented, propose a rename: a short verb phrase, worded the way the human would write it on their own list (rule 8 in `CLAUDE.md`).
 
-    4. **Propose the batch.** Present one table: `#` (rule 9 in `CLAUDE.md`), item, proposed status, proposed tags, rename (if any), one-line rationale — one item per row, so every item has its own number. Ask the user to confirm all / pick exceptions by number.
+    4. **Propose the batch.** Open with where the user is — `Batch 2 of 12 · items 11–20 of 117`. Then present one table: `#` (rule 9 in `CLAUDE.md`), item, proposed status, proposed tags, rename (if any), one-line rationale — one item per row, so every item has its own number. Ask the user to confirm all / pick exceptions by number. Numbering restarts at #1 in every batch.
 
     5. **Apply confirmed changes only.** A confirmed `→ Pocket` row is moved exactly as the `## Pocket` section of `CLAUDE.md` describes and skips the rest of this step. For every other row: update frontmatter (`status`, `tags`), rename files via `mv` when approved, bump `updated` to today, keep `created` untouched. Also backfill schema gaps on every processed item: if `created` is missing, set it to the note's file-creation date (fall back to today); if the `source` key is absent, add an empty `source:`; if `kanban_order` is absent, set it to minus the note's file-creation time in milliseconds (an item with no sort key sinks to the bottom of its column). Never change a `kanban_order` that is already there, whatever its value. This heals hand-made notes that bypassed the template.
 
     6. **Log.** Append one line per processed item to `GTD/Log.md`: `YYYY-MM-DD HH:MM [triage] "<title>" → <status> (tags: ...)`, or `YYYY-MM-DD HH:MM [pocket] "<title>" → Pocket/<category> (tags: ...)` for a row moved to Pocket.
 
-    7. **Report.** Summarize what moved where, and mention anything the user should decide later.
+    7. **Next batch.** If inbox items remain, say how many and ask whether to go on. On yes, go back to step 2 with the next batch. Anything else ends the run; the remaining items stay in the inbox for the next `/gtd-triage`. Every finished batch is already applied and logged, so stopping loses nothing.
+
+    8. **Report.** Summarize what moved where across all batches, how many items are still in the inbox, and anything the user should decide later.
 
 ## 7. `.claude/skills/gtd-review/SKILL.md`
 
@@ -718,6 +720,15 @@ and fall below every real number.
     Manual step to REPORT to the user (only if they want to clip straight into Pocket — the extension can't be scripted):
 
     - **Import the Pocket clipper template:** Web Clipper extension → Settings → Templates → import `clipper/pocket-clipper-template.json`. The existing `GTD Inbox` template stays as it is.
+
+    ### v13 → v14 — triage in batches of 10
+
+    A full inbox made `/gtd-triage` propose everything at once: one table of a hundred rows or more, each waiting for a decision. A list that long is where triage stops getting done. v14 caps a proposal at 10 items, oldest first. Each batch is proposed, applied and logged on its own, then the skill asks before starting the next. Stopping after any batch loses nothing — the rest stay in the inbox for the next run. `/gtd-triage 20` sets another batch size for one run.
+
+    1. **`.claude/skills/gtd-triage/SKILL.md`** — overwrite it, verbatim, with the `## The /gtd-triage skill` section of the canonical `update.md` (the file `CANONICAL_SOURCE` points at, already read by the self-check). Report the line count before and after.
+    2. **Before overwriting, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking.
+    3. **If the canonical source could not be read on this run, apply nothing for v14** and say so. A changelog entry cannot rebuild the canonical text.
+    4. **Nothing else.** No item notes, no project notes, no board, no template, no clipper, no `CLAUDE.md` edits beyond the marker, and no `updated` date moves anywhere. Only the `Schema version:` marker and that one skill file change.
 
 ## 9. `.claude/skills/gtd-project/SKILL.md`
 
@@ -1076,7 +1087,7 @@ column; `/gtd-pocket` gives it a category and tags.
 - Empty folders `GTD/Items/`, `GTD/Projects/`, `GTD/Archive/` and `Pocket/Notes/` (add one placeholder item in `GTD/Items/` from the template so I can see the format).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
 - A short `README.md` at the root (append under an `## LLM-GTD` heading if one already exists — see safety note above) explaining: how to capture (new note, or web clipper import of `clipper/gtd-clipper-template.json`), that new notes auto-fill their frontmatter via the Templater folder-template set up in the manual steps, how to open `GTD/Board.base` and what its four views are (Board / Inbox / Stale / All items), that the board is rendered by the `Base Board` plugin, that each column shows the newest item first because every note is created with a `kanban_order` sort key (and that the Bases "Sort" setting does nothing on a board), and that dragging a card between columns rewrites `status` while dragging within a column replaces that column's `kanban_order` values with the order you dropped them in, that `/gtd-triage` and `/gtd-review` are the two day-to-day maintenance routines, that `/gtd-project` breaks a big outcome into a `GTD/Projects/` note and keeps only its next step on the board (run with no argument it advances every project that has room), that Pocket is a separate board (`Pocket/Board.base`, one column per category) for content worth keeping once its task is done, that `/gtd-pocket` moves a done item there with a category and tags (with no argument it files Pocket's unsorted notes and suggests done items to keep), that `clipper/pocket-clipper-template.json` clips straight into Pocket, that `/gtd-pocket-import <folder>` reviews an existing folder of notes with me and moves the ones worth keeping into Pocket, that `/gtd-update` brings the vault up to date after a schema change, and that moving in from Notion or a CSV is a one-off job done by pasting the repo's `import-notion.md` prompt (there is no import skill — importing happens once, so it isn't worth installing).
-- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v13): boards, templates, schema, skills created.`
+- Log the initial setup as the first line in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v14): boards, templates, schema, skills created.`
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass and report what you made.
 
