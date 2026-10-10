@@ -1,0 +1,42 @@
+filters:
+  and:
+    - file.inFolder("Pocket/Notes")
+properties:
+  note.category:
+    displayName: Category
+  note.tags:
+    displayName: Tags
+  note.created:
+    displayName: Created
+  note.updated:
+    displayName: Updated
+  note.source:
+    displayName: Source
+views:
+  - type: kanban
+    name: Board
+    groupBy:
+      property: category
+      direction: ASC
+    order:
+      - file.name
+    newItemFolder: Pocket/Notes
+    newItemTemplate: Templates/Pocket Note.md
+    newCardsToTop: true
+    boardColumns:
+      - ""
+      - articles
+      - reference
+      - ideas
+      - tools
+  - type: table
+    name: All notes
+    order:
+      - file.name
+      - category
+      - tags
+      - source
+      - updated
+    sort:
+      - property: updated
+        direction: DESC

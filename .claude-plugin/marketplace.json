@@ -1,0 +1,14 @@
+{
+  "name": "llm-gtd",
+  "owner": {
+    "name": "Cyprian Nosek"
+  },
+  "description": "LLM-GTD: a GTD system for Obsidian vaults, kept by Claude Code",
+  "plugins": [
+    {
+      "name": "gtd",
+      "source": "./plugins/gtd",
+      "description": "GTD and Pocket boards in an Obsidian vault, kept by Claude Code"
+    }
+  ]
+}

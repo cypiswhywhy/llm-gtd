@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "GTD Inbox",
+  "behavior": "create",
+  "noteNameFormat": "{{title}}",
+  "path": "GTD/Items",
+  "context": "",
+  "noteContentFormat": "{{content}}",
+  "properties": [
+    { "name": "status", "value": "inbox", "type": "text" },
+    { "name": "tags", "value": "", "type": "multitext" },
+    { "name": "created", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
+    { "name": "updated", "value": "{{date|date:\"YYYY-MM-DD\"}}", "type": "date" },
+    { "name": "source", "value": "{{url}}", "type": "text" },
+    { "name": "kanban_order", "value": "{{date|date:\"x\"|calc:\"*-1\"}}", "type": "number" }
+  ],
+  "triggers": []
+}
