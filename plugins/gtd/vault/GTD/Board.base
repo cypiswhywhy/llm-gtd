@@ -1,0 +1,82 @@
+filters:
+  and:
+    - file.inFolder("GTD/Items")
+properties:
+  note.status:
+    displayName: Status
+  note.tags:
+    displayName: Tags
+  note.created:
+    displayName: Created
+  note.updated:
+    displayName: Updated
+  note.source:
+    displayName: Source
+views:
+  - type: kanban
+    name: Board
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - file.name
+    newItemFolder: GTD/Items
+    newItemTemplate: Templates/GTD Item.md
+    newItemProperties:
+      status: inbox
+    newCardsToTop: true
+    boardColumns:
+      - inbox
+      - focus
+      - next
+      - someday
+      - waiting
+      - done
+  - type: table
+    name: Inbox
+    filters:
+      and:
+        - status == "inbox"
+    order:
+      - file.name
+      - tags
+      - created
+      - source
+    sort:
+      - property: created
+        direction: ASC
+  - type: table
+    name: Stale
+    filters:
+      or:
+        - and:
+            - status == "inbox"
+            - updated < now() - "3 days"
+        - and:
+            - status == "focus"
+            - updated < now() - "7 days"
+        - and:
+            - status == "waiting"
+            - updated < now() - "14 days"
+        - and:
+            - status == "next"
+            - updated < now() - "30 days"
+    order:
+      - file.name
+      - status
+      - tags
+      - updated
+    sort:
+      - property: updated
+        direction: ASC
+  - type: table
+    name: All items
+    order:
+      - file.name
+      - status
+      - tags
+      - created
+      - updated
+    sort:
+      - property: updated
+        direction: DESC

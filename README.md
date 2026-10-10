@@ -4,7 +4,7 @@
 
 You dump thoughts in. Claude Code sorts, tags and files them. You just decide what to do.
 
-[![Animated demo: install with one prompt, capture notes, /gtd-triage files them into columns, /gtd-project turns a big goal into one next step](docs/assets/demo.gif)](docs/assets/demo.mp4)
+[![Animated demo: install with one prompt, capture notes, /gtd:triage files them into columns, /gtd:project turns a big goal into one next step](docs/assets/demo.gif)](docs/assets/demo.mp4)
 
 *84-second demo. Click for the full-quality video.*
 
@@ -23,16 +23,11 @@ It's inspired by the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555
 1. **Open a vault** in Obsidian (new or existing — your notes stay untouched).
 2. **Install 2 plugins** (Settings → Community plugins): `Base Board` and `Templater`.
    `Base Board` needs Obsidian 1.10.2+.
-3. **Run `claude` in the vault folder and paste this:**
+3. **Install the Claude Code plugin and run it.** In a terminal in the vault folder:
 
-   ```text
-   Install llm-gtd in this vault.
-
-   1. Download this file with curl and read all of it:
-      https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/install.md
-      (Don't use a web-fetch tool. It summarizes.)
-   2. Follow the prompt between its two `---` lines exactly,
-      as if I had pasted it in.
+   ```sh
+   claude plugin install gtd --marketplace cypiswhywhy/llm-gtd --scope project
+   claude "/gtd:install"
    ```
 
 4. **Flip one switch.** Settings → Templater → turn on *Trigger Templater on new file creation*, and
@@ -46,25 +41,25 @@ Done. Open `GTD/Board.base` to see your board.
 
 | Type this | What happens |
 |---|---|
-| `/gtd-triage` | Empties the inbox: tags each item and suggests a column. |
-| `/gtd-review` | Weekly check-up: stuck projects, stale cards, old done items archived. |
-| `/gtd-project I want to have a tattoo` | Turns a big goal into small steps. Only the first step becomes a card. |
-| `/gtd-pocket` | Moves done items worth keeping to Pocket, and files what you clipped there. |
-| `/gtd-pocket-import Reading` | Goes through a folder with you and moves the notes worth keeping to Pocket. |
-| `/gtd-update` | Pulls in the latest version of the system. |
+| `/gtd:triage` | Empties the inbox: tags each item and suggests a column. |
+| `/gtd:review` | Weekly check-up: stuck projects, stale cards, old done items archived. |
+| `/gtd:project I want to have a tattoo` | Turns a big goal into small steps. Only the first step becomes a card. |
+| `/gtd:pocket` | Moves done items worth keeping to Pocket, and files what you clipped there. |
+| `/gtd:pocket-import Reading` | Goes through a folder with you and moves the notes worth keeping to Pocket. |
+| `/gtd:update` | Pulls in the latest version of the system. |
 
 To finish something, drag its card to **done**.
 
 ## Big things: projects
 
-"Buy a flat" never gets started — it's a result, not an action. `/gtd-project` asks what *finished*
+"Buy a flat" never gets started — it's a result, not an action. `/gtd:project` asks what *finished*
 looks like, then writes small steps with time estimates into a note in `GTD/Projects/`.
 
 ![A project note: an outcome, then a checklist of small steps with time estimates, the first one ticked off](docs/assets/project.png)
 
 - **Only the active step is on the board**, so it stays a list of things you can do today.
-- **Run `/gtd-project` with no argument** to tick off finished steps and move the next one up.
-- **Stalled for 14 days?** `/gtd-review` names the stuck step and suggests one fix: a sweep, a smaller
+- **Run `/gtd:project` with no argument** to tick off finished steps and move the next one up.
+- **Stalled for 14 days?** `/gtd:review` names the stuck step and suggests one fix: a sweep, a smaller
   step, `waiting` on someone, or letting it go.
 
 ## Things to keep: Pocket
@@ -73,11 +68,11 @@ GTD is only for things to do. Pocket is for things to keep — an article you re
 a tool. It's a separate board in `Pocket/`, with its own tags, and its columns are categories instead
 of statuses.
 
-- **Read it, drag it to done, then `/gtd-pocket`.** It proposes a category and tags, and moves the note
-  once you say yes. `/gtd-triage` and `/gtd-review` suggest it too.
+- **Read it, drag it to done, then `/gtd:pocket`.** It proposes a category and tags, and moves the note
+  once you say yes. `/gtd:triage` and `/gtd:review` suggest it too.
 - **Already know you want to keep it?** Clip it with the Pocket web-clipper template. It lands in the
-  unsorted column until `/gtd-pocket` files it.
-- **Already have a folder of saved articles?** `/gtd-pocket-import <folder>` goes through it with you,
+  unsorted column until `/gtd:pocket` files it.
+- **Already have a folder of saved articles?** `/gtd:pocket-import <folder>` goes through it with you,
   20 notes at a time, and moves only the ones you say yes to. The rest stay where they are.
 - **A new category is just a new column.** Nothing to set up.
 
@@ -137,8 +132,7 @@ Pocket/Notes/           # one note per thing you kept
 Templates/GTD Item.md   # template for new items
 Templates/Pocket Note.md  # template for new Pocket notes
 clipper/                # Obsidian Web Clipper templates (GTD inbox, Pocket)
-.claude/skills/         # gtd-triage, gtd-review, gtd-project, gtd-pocket,
-                        # gtd-pocket-import, gtd-update
+.claude/settings.json   # enables the gtd plugin in this vault (written by `claude plugin install`)
 ```
 
 Nothing else in your vault is read, moved or changed. If a file already exists, it stops and asks.
@@ -148,18 +142,18 @@ Nothing else in your vault is read, moved or changed. If a file already exists, 
 <details>
 <summary><b>What's in this repo</b></summary>
 
-This isn't a plugin — it's a set of **prompts** for Claude Code. The snippets above fetch them for
-you; you never need to open these files.
+The system is a Claude Code plugin, `gtd`, in [`plugins/gtd/`](plugins/gtd/). The rest are prompts you
+paste in once, when you need them.
 
 | File | Use it to |
 |---|---|
-| [`install.md`](install.md) | Set up a vault. |
-| [`update.md`](update.md) | Upgrade a vault installed earlier. `/gtd-update` does this for you. |
+| [`install.md`](install.md) | Set up a vault, step by step. |
+| [`update.md`](update.md) | Move a vault installed before the plugin onto it. Its old `/gtd-update` does this for you. |
 | [`import-notion.md`](import-notion.md) | Move in from Notion or a CSV, once. |
 | [`fix-native-kanban.md`](fix-native-kanban.md) | Get the `Base Board` look back on Obsidian 1.14+. |
-| [`install.html`](install.html) | Read the installer as a web page with a copy button. |
+| [`install.html`](install.html) | The same setup as a web page with a copy button. |
 
-`/gtd-update` checks this repo on every run, so installed vaults stay current. Maintainer notes
+Updating the plugin updates the commands; `/gtd:update` then migrates the vault's data. Maintainer notes
 live in [`CLAUDE.md`](CLAUDE.md).
 
 </details>

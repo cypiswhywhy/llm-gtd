@@ -151,7 +151,7 @@ Anything that doesn't clearly fit: propose `inbox` and flag it — triage sorts 
 
 **b. The focus cap.** `CLAUDE.md` wants Focus at 3–5 items. If the map would put more than 5 there, say so and propose keeping the N most-recently-edited as `focus`, demoting the rest to `next`. A board that opens with forty items in Focus is worse than no board.
 
-**c. Done routing.** Items mapping to `done` whose last-edited date is **older than 30 days** go straight to `GTD/Archive/` — that's what `/gtd-review` would do to them anyway, and it keeps the board readable. Report the split (`N done → Archive`, `M done → Items`). With no date to judge by, archive all `done` items and say so.
+**c. Done routing.** Items mapping to `done` whose last-edited date is **older than 30 days** go straight to `GTD/Archive/` — that's what `/gtd:review` would do to them anyway, and it keeps the board readable. Report the split (`N done → Archive`, `M done → Items`). With no date to judge by, archive all `done` items and say so.
 
 **d. Tag map.** Propose the concrete tag list: which columns feed tags, and the normalisation (lowercase, kebab-case, emoji and punctuation stripped, spaces → `-`). Apply `CLAUDE.md` rule 5 **before** proposing: match candidates against the vault's existing tags and fold near-matches onto what's already there (`Reading` → the existing `reading`, not a second variant). Show the new-tag count; if the import would introduce more than ~25 new tags, propose dropping the long tail — tags used once or twice carry no signal.
 
@@ -163,7 +163,7 @@ Optionally add one tag per source database (`notion-tasks`, `notion-reading`): u
 - `tags` — the tag map above
 - `created` — `Created time` column → else the earliest date column on the row → else today
 - `updated` — `Last edited time` column → else `created`
-- `source` — **only** a genuine URL property (a bookmark, an article link). Leave it **empty** otherwise. Do **not** put the `notion.so` page URL here: `/gtd-triage` fetches `source` and summarises it, and it would fail on every private Notion page, wasting the entire triage batch. The Notion link belongs in the body (step 4).
+- `source` — **only** a genuine URL property (a bookmark, an article link). Leave it **empty** otherwise. Do **not** put the `notion.so` page URL here: `/gtd:triage` fetches `source` and summarises it, and it would fail on every private Notion page, wasting the entire triage batch. The Notion link belongs in the body (step 4).
 - **No other keys, ever** (`CLAUDE.md` rule 7). Every source property with no slot in the schema goes into the body, not into frontmatter.
 
 **f. Titles.** Show 10 sample before/after filenames so bad cases surface early. Rules:
@@ -217,7 +217,7 @@ For very large imports, collapse the per-item lines to one per batch and keep th
 2. **Skipped** items and why — collision, no title, unreadable.
 3. **Out of scope**: the loose pages you did not import, listed, with the reminder that the import writes nothing outside `GTD/`, so placing them is my call.
 4. **What didn't survive.** Notion formulas, rollups, synced blocks, database views, comments, and page history have no equivalent here. Name what was dropped instead of implying everything mapped.
-5. **Next steps**: run `/gtd-triage` on whatever landed in `inbox`, then `/gtd-review` for a first honesty pass. `.gtd-import/` (or wherever the export came from) is now safe for me to delete — say so, name the path, and don't delete it yourself.
+5. **Next steps**: run `/gtd:triage` on whatever landed in `inbox`, then `/gtd:review` for a first honesty pass. `.gtd-import/` (or wherever the export came from) is now safe for me to delete — say so, name the path, and don't delete it yourself.
 
 ## Notion export anatomy (reference)
 
