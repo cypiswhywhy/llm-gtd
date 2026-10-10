@@ -1,11 +1,11 @@
 # Updating an existing LLM-GTD vault
 
-A self-contained prompt for bringing a vault that **already has LLM-GTD installed** up to the current schema. Paste it into Claude Code at the vault's root. It detects the vault's schema version, applies only the migrations it's missing, refreshes the in-vault `/gtd-update` skill, and does all of it non-destructively — propose-then-apply, logged, nothing outside `GTD/` and `Pocket/` touched.
+A self-contained prompt for bringing a vault installed **before the `gtd` plugin** (schema v14 or older) up to v15 — the version that moves its skills into the plugin. Paste it into Claude Code at the vault's root, or just run the old `/gtd-update`: it fetches this file on its own. It detects the vault's schema version, applies only the migrations it's missing, and does all of it non-destructively — propose-then-apply, logged, nothing outside `GTD/` and `Pocket/` touched.
 
-- **Brand-new vault?** Use [`install.md`](install.md) instead — this prompt assumes an install is already present.
-- **Day to day**, the installed `/gtd-update` skill does the same job from inside the vault. This file is the canonical, always-latest copy of the changelog. As of the current skill, `/gtd-update` points a `CANONICAL_SOURCE` at *this file* and checks it on every run, so once a vault has been through this prompt once it can detect newer versions on its own (and self-refresh) instead of going stale. Running this prompt also creates/repairs the skill for vaults installed before it existed.
+- **Brand-new vault?** Install the plugin instead — see the repo's [`README.md`](README.md).
+- **Already on v15 or later?** Run `/gtd:update` from the plugin. This file stops at v15.
 
-No new plugins are needed to update — the two community plugins from `install.md` are already enabled. A migration may still *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import, v13's Pocket clipper-template import); the prompt tells you, it never attempts them.
+A migration may *report* a manual step for things that live outside the vault (v3's Templater folder-template, v6's `Base Board` install, v7's clipper-template re-import, v13's Pocket clipper-template import, v15's plugin install); the prompt tells you, it never attempts them.
 
 ## The prompt
 
@@ -25,13 +25,13 @@ The vault's current schema version is the integer after `Schema version:` in the
 2. **The migration logic and the full changelog are the `gtd-update` skill printed at the end of this prompt.** Read it and follow it against this vault: plan every step for versions `current+1 … target`, present the plan grouped by version (naming the exact files and notes each step touches), and wait for my confirmation before writing.
 3. **Apply** confirmed steps in version order. Never delete an item note. Bump `updated` only on notes whose content actually changes.
 4. **Bump the marker** in `CLAUDE.md` to the target version (add the `Schema version:` line if it was absent).
-5. **Install/refresh the skill.** Create or overwrite `.claude/skills/gtd-update/SKILL.md` with the exact content printed at the end of this prompt, so the vault carries the current changelog for next time. **Seed the self-check:** the skill's `CANONICAL_SOURCE:` line already ships pointing at the repo's public raw `update.md` — keep that value as-is unless I tell you otherwise (I'd want a local path like `~/devel/llm-gtd/update.md` only if I'm offline or want unpushed migrations to count). This is what lets a future `/gtd-update` detect a newer version on its own instead of going stale.
+5. **No skill to install.** v15 moves every skill into the `gtd` Claude Code plugin and deletes the in-vault copies — don't create `.claude/skills/gtd-update/` or any other skill file.
 6. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
-7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)" — but still make sure the `/gtd-update` skill exists and matches the content below, and that `.claude/skills/gtd-project/SKILL.md`, `.claude/skills/gtd-pocket/SKILL.md` and `.claude/skills/gtd-pocket-import/SKILL.md` exist (all are printed below; create any that is missing).
+7. **Report** what changed and anything I should double-check. If the vault is already at the target, say "already up to date (vN)", and point me at `/gtd:update` for anything newer.
 
 ## The `/gtd-update` skill — the source of truth for migrations
 
-Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-update/SKILL.md`:
+Follow this to migrate the vault. Don't write it to `.claude/skills/` — v15 ends the in-vault skills:
 
     ---
     name: gtd-update
@@ -273,6 +273,24 @@ Follow this to migrate the vault, then write it verbatim to `.claude/skills/gtd-
     2. **Before overwriting, check for content that is *not* in the canonical text** — a note someone added to their own copy. If you find any, show it and ask before dropping it; otherwise replace the file without asking.
     3. **If the canonical source could not be read on this run, apply nothing for v14** and say so. A changelog entry cannot rebuild the canonical text.
     4. **Nothing else.** No item notes, no project notes, no board, no template, no clipper, no `CLAUDE.md` edits beyond the marker, and no `updated` date moves anywhere. Only the `Schema version:` marker and that one skill file change.
+
+    ### v14 → v15 — the skills move into the `gtd` Claude Code plugin
+
+    Every skill lived as a copy inside each vault, so every skill change needed a migration that overwrote that copy, and the repo had to print each skill several times to make that possible. From v15 the skills come from the `gtd` plugin (the repo is its marketplace), and updating the plugin updates them. The vault keeps only its data. The commands get the plugin's prefix: `/gtd-triage` becomes `/gtd:triage`, and the same for `review`, `project`, `pocket`, `pocket-import` and `update`.
+
+    **Read this before planning the earlier entries.** When the target is v15 or later, skip every step of an earlier entry that creates or overwrites a file in `.claude/skills/` — step 4 below deletes those files anyway. Apply the rest of those entries as written. The `/gtd-update` self-refresh (overwriting this `SKILL.md` after applying) is skipped too: v15 is the last migration an in-vault skill applies.
+
+    The new texts below come from the repo, read verbatim from `https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/plugins/gtd/vault/` (or `plugins/gtd/vault/` of the local clone, if `CANONICAL_SOURCE` is a local path). **If those files could not be read on this run, apply nothing for v15** and say so.
+
+    1. **Install the plugin first — the human does it.** Ask me to run this in the vault root, in a terminal or with `!` in Claude Code: `claude plugin install gtd --marketplace cypiswhywhy/llm-gtd --scope project`. Then check that `.claude/settings.json` lists `"gtd@llm-gtd": true` under `enabledPlugins`. **If it doesn't, apply nothing for v15** and stop: without the plugin, step 4 would leave the vault with no skills at all.
+    2. **`CLAUDE.md`** — replace the LLM-GTD section (from `# LLM-GTD — vault schema` to the end of its rules) with `CLAUDE.md` from the repo's `plugins/gtd/vault/`, verbatim. Before replacing, compare the two: apart from the command names, the `Schema version:` line, rule 6 and the plugin line under `## Layout`, they should match. If the vault's section holds anything more — a note someone added — show it and ask before dropping it. Everything outside the section stays.
+    3. **`README.md`** — replace the `## LLM-GTD` section with `README.md` from `plugins/gtd/vault/`, verbatim. The installer wrote that section, but if it holds lines it would not have written — a personal note — show them and ask first. Everything outside the section stays.
+    4. **Delete the in-vault skills:** `.claude/skills/gtd-triage/`, `gtd-review/`, `gtd-project/`, `gtd-pocket/`, `gtd-pocket-import/` and `gtd-update/`. Before deleting, check each for content that is not in its canonical text in the repo's `update.md` and show it, so nothing someone added is lost silently. Delete nothing else in `.claude/`.
+    5. **Nothing else.** No item notes, no project notes, no boards, no templates, no clipper templates, and no `updated` date moves anywhere.
+
+    Manual step to REPORT to the user:
+
+    - **Start a new Claude Code session** in the vault. The commands are now `/gtd:triage`, `/gtd:review`, `/gtd:project`, `/gtd:pocket`, `/gtd:pocket-import` and `/gtd:update`. Future updates arrive with the plugin (`/plugin` → update); after one, run `/gtd:update` to migrate the vault's data.
 
 ---
 
@@ -811,8 +829,4 @@ Before applying anything, confirm the vault's current version and the target, th
 
 ## Adding a future migration
 
-When the schema changes again, append a new `### vN → vN+1` entry to the changelog **in two places, kept identical**: the `## The /gtd-update skill` block in this file, and section 8 of [`install.md`](install.md) (and its mirror in `install.html`). Bump the `Schema version:` number in the `install.md` / `install.html` schema so fresh installs start at the new latest. Existing vaults then pick the change up by running this prompt (or `/gtd-update` once their skill has been refreshed).
-
-A migration that touches a **skill file at all** needs one thing more. The changelog describes edits, so a new file has to be printed in full: give it its own `## The /<name> skill` section inside this prompt *and* its own numbered section in `install.md`, and have the changelog entry point at both rather than repeating the text a third time. v8 and `/gtd-project` are the worked example — and note the consequence the entry spells out: that migration can only be applied when the canonical source was actually read, so it refuses to apply itself offline instead of writing half of v8.
-
-Since v10 the same holds for **editing** a skill, not just adding one. Never describe the edit in prose — the agent applying it would write its own wording, and the next migration would then edit *that*. Instead update the skill's own section in this file and in `install.md`, and let the entry say: overwrite `.claude/skills/<name>/SKILL.md` verbatim from that section. Every skill is printed here for exactly that reason; keep it that way when you add the next one.
+Not here. This file is frozen at v15, the migration that moves a vault onto the `gtd` plugin. Every later migration is an entry in the plugin's own `/gtd:update` skill (`plugins/gtd/skills/update/SKILL.md`), which reaches vaults with the next plugin version.
