@@ -21,5 +21,5 @@ Card order inside a column is the plugin's own `kanban_order` property, **not** 
 
 ## Updating
 
-- **Installed with the plugin:** update the plugin (`/plugin` → update), then run `/gtd:update` to migrate the vault's data.
+- **Installed with the plugin:** in a terminal, in the vault folder, run `claude plugin marketplace update llm-gtd`, then `claude plugin update gtd@llm-gtd --scope project`. Start Claude Code again and run `/gtd:update` to migrate the vault's data. From plugin 1.2.0 on, `/gtd:update` checks for a newer plugin and offers to run those two commands for you.
 - **Installed before the plugin** (schema v14 or older): run the vault's old `/gtd-update`, or paste [`update.md`](update.md). Its last migration, v15, moves the vault onto the plugin.

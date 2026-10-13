@@ -11,25 +11,34 @@ The skills themselves need no migrating: they come from the plugin, and updating
 
 ## Steps
 
-1. **Read the vault version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
+1. **Is the plugin itself current?** This skill only knows the migrations of the plugin version it came with, so an old plugin reports "up to date" while a newer schema exists. Compare `version` in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` with `version` in https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/plugins/gtd/.claude-plugin/plugin.json. If the fetch fails, say so and go on. If GitHub has a newer version, stop here and offer to update the plugin. On a yes, run from the vault folder:
 
-2. **Older than v15?** The vault predates the plugin. Its migrations live in the repo's `update.md`: fetch https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/update.md and follow that prompt instead of this skill — it ends at v15. Then come back here for anything newer.
+   ```sh
+   claude plugin marketplace update llm-gtd
+   claude plugin update gtd@llm-gtd --scope project
+   ```
 
-3. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
+   Then tell me, in these words or close: *"The plugin is updated. Close Claude Code (type `/exit`), start it again in this vault (`claude`), and run `/gtd:update` once more."* A new plugin version only loads in a new session, so don't go on to the steps below. If a command fails, show its error and give me the same two commands to type myself, each prefixed with `!`.
 
-4. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
+2. **Read the vault version** from `CLAUDE.md` (`Schema version: N`; absent → 1).
 
-5. **Apply** confirmed steps in version order. Never delete an item note or a Pocket note. Bump `updated` only on notes whose content actually changes. When a step says to take a file *verbatim from the plugin*, copy it byte for byte from `${CLAUDE_PLUGIN_ROOT}/vault/` — never rewrite it from the changelog's description.
+3. **Older than v15?** The vault predates the plugin. Its migrations live in the repo's `update.md`: fetch https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/update.md and follow that prompt instead of this skill — it ends at v15. Then come back here for anything newer.
 
-6. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target.
+4. **Determine the target** = the highest version in the changelog below. If current ≥ target: report "already up to date (vN)" and stop.
 
-7. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
+5. **Plan.** For each version from current+1 up to target, gather that entry's steps in order. Present one migration plan grouped by version, naming the exact files and notes each step touches. Wait for my confirmation.
 
-8. **Report** what changed and the version the vault is now on.
+6. **Apply** confirmed steps in version order. Never delete an item note or a Pocket note. Bump `updated` only on notes whose content actually changes. When a step says to take a file *verbatim from the plugin*, copy it byte for byte from `${CLAUDE_PLUGIN_ROOT}/vault/` — never rewrite it from the changelog's description.
+
+7. **Bump the marker.** Set `Schema version:` in `CLAUDE.md` to the target.
+
+8. **Log.** Append to `GTD/Log.md`: one `YYYY-MM-DD HH:MM [migrate] vX → vY: <summary>` line per version applied (add a count of notes touched when the batch is large).
+
+9. **Report** what changed and the version the vault is now on.
 
 ## Changelog (oldest first)
 
-Migrations up to v15 are in the repo's `update.md` (step 2). v15 is the first schema the plugin installs.
+Migrations up to v15 are in the repo's `update.md` (step 3). v15 is the first schema the plugin installs.
 
 ### v15 → v16
 
