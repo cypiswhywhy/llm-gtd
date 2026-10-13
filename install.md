@@ -6,7 +6,7 @@ It works on a **fresh vault** or an **existing one**. Everything it writes lives
 
 ## Steps
 
-1. **Install two Obsidian plugins.** Settings → Community plugins → install and enable `Base Board` and `Templater`. `Base Board` draws the boards and needs Obsidian **1.10.2 or newer**.
+1. **Install two Obsidian plugins.** Settings → Community plugins → install and enable `Base Board` and `Templater`. `Base Board` draws the boards; use version **2.6.0 or newer** (older versions clash with Obsidian 1.14's own kanban) on Obsidian **1.10.2 or newer**.
 2. **Install the Claude Code plugin** for this vault only. In a terminal at the vault root:
 
    ```sh

@@ -24,7 +24,6 @@ mirror any more.
 | `update.md` | **Frozen at v15.** The migration prompt for vaults installed before the plugin (v1–v14), still fetched by their old in-vault `/gtd-update` from `main`. Its last entry, v14 → v15, installs the plugin and deletes the in-vault skills. It keeps the canonical text of the old skills because entries v8 and v10–v14 point at it. Don't edit it except to fix a bug in the path to v15. |
 | `install.md`, `install.html` | Short install instructions, as markdown and as a web page. `install.html`'s copy button copies the JSON string in `#prompt-data` — the two install commands. |
 | `import-notion.md` | **Deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault — edit it freely, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because skills then only refreshed on a schema bump. Plugin skills don't have that problem any more, but importing still happens once per vault, which is the argument for a prompt over a skill. |
-| `fix-native-kanban.md` | **Same reasoning as `import-notion.md`.** Opt-in paste-in prompt for Obsidian 1.14+, whose native Bases kanban registered the same view type `kanban` as `Base Board` and took over the boards. Patches the vault's copy of the plugin to register `base-board` and switches only views with Base Board keys. Temporary: once upstream [issue #62](https://github.com/mderazon/obsidian-base-board/issues/62) ships, the real fix is a schema migration moving the boards to upstream's new type, and this file goes. |
 | `docs/demo/` | Source of the README demo: `demo.html` is a scripted animation (a mock of Obsidian + Claude Code, not a recording), `render.mjs` screenshots it frame by frame in headless Chrome and writes `docs/assets/demo.mp4` + `demo.gif` (needs `google-chrome`, `ffmpeg`, Node 22). Run `node docs/demo/render.mjs`; `--stills 5,30` previews single frames. The terminal dialogue paraphrases what the skills do — re-render if a skill's user-visible flow changes. |
 
 Two notes on the vault files that live nowhere else: the Templater template and the clipper both
@@ -34,7 +33,7 @@ as a string and falls below every real number.
 
 ## Schema versioning — the core invariant
 
-The vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 15**). Changing anything
+The vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 16**). Changing anything
 in `plugins/gtd/vault/` that an existing vault already has is a schema change:
 
 1. Append a `### vN → vN+1` entry to the changelog in `plugins/gtd/skills/update/SKILL.md`.
@@ -48,6 +47,11 @@ the agent applying it writes its own wording, the next migration edits that para
 few rounds a vault's file and the repo's are different documents with no way to tell a rewording from
 a lost rule. v9 is the worked example of the mistake and v10 of the repair. Before v15 this rule was
 about skills; now skills ship with the plugin and need no migration at all.
+
+The two `Board.base` files are the exception: they hold the user's own `Base Board` settings (tag
+and column colors, collapsed columns, extra Pocket categories), so a copy would wipe them. A board
+migration names exact, mechanical edits to one view — a key's value, a block to delete — never a
+reworded paragraph. v16 is the example.
 
 Check after any edit:
 
@@ -75,14 +79,16 @@ may differ.
   today is told to skip it: **no migration path writes outside those paths any more.** The single
   exception is user-invoked, not installed behaviour: `/gtd:pocket-import <folder>` (v13) reads the folder
   the user names and moves the notes they confirm out of it into `Pocket/Notes/` — nothing else there.
-  `fix-native-kanban.md` is the other user-invoked one: it edits
-  `.obsidian/plugins/base-board/main.js` (backup first), and only when pasted in.
+  (Until v16 a paste-in `fix-native-kanban.md` patched `.obsidian/plugins/base-board/main.js`; it went
+  when `Base Board` 2.6.0 shipped the fix. The v16 migration only *reads* that plugin's
+  `manifest.json`.)
 - **Existing-vault safety.** Every generated file has a guard clause: append (`CLAUDE.md`, `README.md`)
   or stop and report the collision (`GTD/`, the skills, the clipper template). Never overwrite.
 - **`status` is the only completion signal** (`inbox|focus|next|someday|waiting|done`). v2 deliberately
   removed the redundant `done:` boolean; don't reintroduce a second completion field.
 - **`GTD/Board.base` kanban view's `order:` must list `file.name` and nothing else.** Since v6 the board
-  is the `Base Board` plugin (`type: kanban`), which inverted the old rule: it never draws `file.name` as
+  is the `Base Board` plugin (`type: base-board` since v16; `kanban` before, until Obsidian 1.14
+  took that id for its native kanban), which inverted the old rule: it never draws `file.name` as
   a chip but re-inserts it into `order:` on every render (rewriting the file if absent), and it renders
   tags as its own colored pills regardless of `order:` — so listing `tags` prints every tag twice. Two
   more v6 shapes that are easy to get wrong: `groupBy.property` is the **bare** `status` (not

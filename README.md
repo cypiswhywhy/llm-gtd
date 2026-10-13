@@ -22,7 +22,7 @@ It's inspired by the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555
 
 1. **Open a vault** in Obsidian (new or existing — your notes stay untouched).
 2. **Install 2 plugins** (Settings → Community plugins): `Base Board` and `Templater`.
-   `Base Board` needs Obsidian 1.10.2+.
+   `Base Board` must be 2.6.0+, on Obsidian 1.10.2+.
 3. **Install the Claude Code plugin and run it.** In a terminal in the vault folder:
 
    ```sh
@@ -98,23 +98,11 @@ Long-finished items go straight to the archive, so the board opens clean.
 
 ## Board lost its tag colors? (Obsidian 1.14+)
 
-Obsidian 1.14 added its own kanban view under the same name `Base Board` uses, so it now draws
-your boards instead: tags lose their colors, columns stop collapsing. Until the plugin fixes it
-([issue #62](https://github.com/mderazon/obsidian-base-board/issues/62)), run `claude` in the vault
-folder and paste this:
+Obsidian 1.14 added its own kanban view under the name `Base Board` used to use, so it drew your
+boards instead: tags lost their colors, columns stopped collapsing. `Base Board` 2.6.0 fixed it.
 
-```text
-Fix my board for Obsidian 1.14.
-
-1. Download this file with curl and read all of it:
-   https://raw.githubusercontent.com/cypiswhywhy/llm-gtd/main/fix-native-kanban.md
-   (Don't use a web-fetch tool. It summarizes.)
-2. Follow the prompt between its two `---` lines exactly,
-   as if I had pasted it in.
-```
-
-It patches your copy of the plugin and both boards, after you say yes. Run it again if a
-`Base Board` update brings the problem back.
+1. In Obsidian: Settings → Community plugins → update `Base Board` to 2.6.0 or newer.
+2. In Claude Code, in the vault: `/gtd:update`. It points both boards at the renamed view.
 
 <details>
 <summary><b>What it adds to your vault</b></summary>
@@ -150,7 +138,6 @@ paste in once, when you need them.
 | [`install.md`](install.md) | Set up a vault, step by step. |
 | [`update.md`](update.md) | Move a vault installed before the plugin onto it. Its old `/gtd-update` does this for you. |
 | [`import-notion.md`](import-notion.md) | Move in from Notion or a CSV, once. |
-| [`fix-native-kanban.md`](fix-native-kanban.md) | Get the `Base Board` look back on Obsidian 1.14+. |
 | [`install.html`](install.html) | The same setup as a web page with a copy button. |
 
 Updating the plugin updates the commands; `/gtd:update` then migrates the vault's data. Maintainer notes

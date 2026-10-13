@@ -2,7 +2,7 @@
 
 This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-**Schema version: 15.** Version marker for migrations — the `/gtd:update` skill reads the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+**Schema version: 16.** Version marker for migrations — the `/gtd:update` skill reads the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
 ## Layout
 
