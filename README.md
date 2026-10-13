@@ -102,7 +102,20 @@ Obsidian 1.14 added its own kanban view under the name `Base Board` used to use,
 boards instead: tags lost their colors, columns stopped collapsing. `Base Board` 2.6.0 fixed it.
 
 1. In Obsidian: Settings → Community plugins → update `Base Board` to 2.6.0 or newer.
-2. In Claude Code, in the vault: `/gtd:update`. It points both boards at the renamed view.
+2. Update the `gtd` plugin — see [Updating](#updating) below.
+3. In Claude Code, in the vault: `/gtd:update`. It points both boards at the renamed view.
+
+## Updating
+
+`/gtd:update` says "already up to date" but you expected something new? The plugin itself is old.
+In a terminal, in your vault folder:
+
+1. `claude plugin marketplace update llm-gtd`
+2. `claude plugin update gtd@llm-gtd --scope project`
+3. Start Claude Code again in the vault (`claude`) and run `/gtd:update`.
+
+Inside Claude Code you can type the first two with a `!` in front, then `/exit` and start again.
+From plugin 1.2.0 on, `/gtd:update` checks this itself and offers to do it for you.
 
 <details>
 <summary><b>What it adds to your vault</b></summary>
