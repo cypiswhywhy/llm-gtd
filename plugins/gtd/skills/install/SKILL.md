@@ -41,7 +41,7 @@ Report which of the files below already existed and how you handled each before 
 
 - Empty folders `GTD/Items/`, `GTD/Projects/`, `GTD/Archive/` and `Pocket/Notes/` (add one placeholder item in `GTD/Items/` from the template so I can see the format — fill in the Templater expressions yourself: today's date, and minus the current time in milliseconds for `kanban_order`).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
-- Log the initial setup as the first line after the `---` in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v15): boards, templates, schema created.`
+- Log the initial setup as the first line after the `---` in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v16): boards, templates, schema created.`
 
 ## Report
 

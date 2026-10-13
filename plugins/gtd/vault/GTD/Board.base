@@ -13,7 +13,7 @@ properties:
   note.source:
     displayName: Source
 views:
-  - type: kanban
+  - type: base-board
     name: Board
     groupBy:
       property: status
