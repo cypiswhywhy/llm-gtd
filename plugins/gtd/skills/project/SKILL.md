@@ -97,6 +97,7 @@ First look in `GTD/Projects/` for a note that matches the description. If one is
 5. If an item of that name already exists in `GTD/Items/` or `GTD/Archive/`, don't collide
    silently — propose a distinguishing name (append the project, e.g. `Call 3 studios (Tattoo)`).
 6. Never promote a step already marked `- [x]`, and never take a project above its `wip`.
+7. After the last promotion of the run, run the settle check (rule 10 in `CLAUDE.md`): 5 seconds after the last write, re-read the frontmatter of every note you created in `GTD/Items/`; where any value differs from what you wrote (YAML formatting aside), Templater rewrote it — write yours back in place and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after <create|rename|move> (<keys>); restored`.
 
 ## Guard clauses
 

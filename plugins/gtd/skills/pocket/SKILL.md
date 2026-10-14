@@ -53,6 +53,7 @@ how an item moves — and the propose-then-apply rule.
      missing `created` becomes the file-creation date, a missing `source` key an empty `source:`, a
      missing `kanban_order` minus the file-creation time in milliseconds. Never change a
      `kanban_order` that is already there.
+   - Then run the settle check (rule 10 in `CLAUDE.md`): 5 seconds after the last write, re-read the frontmatter of every note you moved; where any value differs from what you wrote (YAML formatting aside), Templater rewrote it — write yours back in place and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after <create|rename|move> (<keys>); restored`.
 6. **Log** one line per note in `GTD/Log.md`: `YYYY-MM-DD HH:MM [pocket] "<title>" GTD/Items →
    Pocket/<category> (tags: ...)` for a move, `YYYY-MM-DD HH:MM [pocket] "<title>" filed →
    <category> (tags: ...)` for a Pocket note.

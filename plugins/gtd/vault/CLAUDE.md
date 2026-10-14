@@ -2,7 +2,7 @@
 
 This vault is an Obsidian-based GTD (Getting Things Done) system maintained jointly by the human and Claude, following the llm-wiki idea: the human captures and decides, the LLM does the bookkeeping. This file is the schema — read it before touching anything.
 
-**Schema version: 16.** Version marker for migrations — the `/gtd:update` skill reads the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
+**Schema version: 17.** Version marker for migrations — the `/gtd:update` skill reads the integer here to know which schema changes a vault still needs. Migrations bump it; don't edit it by hand.
 
 ## Layout
 
@@ -17,8 +17,8 @@ GTD/Attachments/  # files an import brought with it — created on demand
 GTD/Log.md        # append-only activity log (GTD and Pocket)
 Pocket/Board.base # Pocket board — one column per category + All view
 Pocket/Notes/     # one note per piece of content worth keeping — the ONLY place Pocket notes live
-Templates/GTD Item.md     # Templater template for new items
-Templates/Pocket Note.md  # Templater template for the Pocket board's + button
+Templates/GTD Item.md     # Templater folder template for GTD/Items/ — fills only the keys a note lacks
+Templates/Pocket Note.md  # Templater folder template for Pocket/Notes/ — likewise
 clipper/          # Obsidian Web Clipper templates (GTD inbox, Pocket)
 ```
 
@@ -45,6 +45,13 @@ with minus its creation timestamp in milliseconds (`-1786636800000`). `Base Boar
 by this value ascending, so a more negative number means a newer item and every column shows
 **newest at the top** with no dragging involved. All three capture paths stamp it: the Templater
 template, the web-clipper template, and the board's own `+` button (which supplies its own value).
+
+The Templater templates print **only the keys a note lacks**. Templater applies a folder template
+to every note with no body that appears in its folder — a new empty note, a `+` card, and also a
+note renamed or moved there from outside Obsidian — and merges it into the note's frontmatter with
+the template's values winning. A template that printed `status: inbox` outright sent every `+` card
+to the inbox whatever its column, and reset every item renamed by `mv` to `inbox` with a fresh
+`created` and `kanban_order`. Never write a key into a template unconditionally.
 
 After creation it belongs to the plugin. Dragging a card inside a column makes `Base Board`
 rewrite the numbers in **that whole column** as its own short string keys (`a0`, `a1`, …),
@@ -196,7 +203,7 @@ A Pocket note never moves back into GTD. To act on it again, capture a new item 
 
 ## Operations
 
-- **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README); any hand-made note that's missing `created` or `source` is backfilled at triage.
+- **capture** — create a note in `GTD/Items/` from the template with `status: inbox`. Do NOT process at capture time; capture must stay frictionless. New notes get their frontmatter from the Templater folder-template (a one-time Obsidian setting — see the README), which fills only the keys a note lacks; any hand-made note that's missing `created` or `source` is backfilled at triage.
 - **triage** (`/gtd:triage`) — process the inbox: enrich (summarize `source` URLs into the body), tag, propose a destination status per item. llm-wiki's *ingest*.
 - **review** (`/gtd:review`) — the lint pass: surface stalled projects, flag stale items, archive old done items, surface someday items, spot duplicates. llm-wiki's *lint*.
 - **project** (`/gtd:project`) — turn a multi-step outcome into a `GTD/Projects/` note with a step checklist, and keep exactly `wip` of its steps on the board. With a description it plans (or re-plans) one project; with no argument it sweeps every active project and promotes the next step of any that has room.
@@ -216,3 +223,4 @@ A Pocket note never moves back into GTD. To act on it again, capture a new item 
 7. Frontmatter must always match the schema above — no renamed keys, and no extra keys of your own. Three exceptions are part of the schema, not deviations from it: `project` appears only on an item that is a project step, a project note carries its own keys (`wip`, `outcome`, and no `kanban_order`), and a Pocket note carries its own (`category`, and no `status`) — plus, if it was imported, the keys it arrived with. `kanban_order` is the one key with split ownership: stamp it on an item or Pocket note you create (minus the creation timestamp in milliseconds) and on a note you move into Pocket (minus the move time), and preserve any value you find untouched.
 8. **Write as the human.** Everything you put into a note — a title, a project step, a summary, a line of body text — reads as if the human wrote it for themselves: in their language, in their voice, never addressed to them. A task is named the way a person writes it on their own list, not as an order to a reader; where a language has a distinct form for that, use it (Polish "Zadzwonić do banku", not "Zadzwoń do banku"; German "Bank anrufen", not "Ruf die Bank an"). In English the bare verb ("Call the bank") already is that form. The rule covers what you write, not what the human already wrote: never rewrite their text only to change its form. Your replies in the conversation are still addressed to the human.
 9. **Answer in the human's language, and number what you propose.** Your replies in the conversation — reports, questions, proposals — are in the language the human writes to you in; their own messages decide, not the language of this file or of the skills. Every proposal that waits for their confirmation numbers its rows `#1`, `#2`, … in one sequence across the whole proposal, so they can answer "all except #4" or "#7 → someday" without quoting a row back.
+10. **Check the frontmatter after every create, rename or move.** Obsidian sees a note that appears in a folder — a new file, or one you renamed or moved with `mv` — as a new note, and Templater can rewrite its frontmatter a moment later (the item schema says why: the templates fill only missing keys, but a vault may still hold an older template, or a folder template of the human's own). So after each batch of notes you create, rename or move into `GTD/Items/`, `GTD/Archive/` or `Pocket/Notes/`, wait 5 seconds, then re-read each note's frontmatter. If any key's value differs from what you wrote (a change of YAML formatting alone doesn't count), write your frontmatter back in place — an edit in place doesn't trigger Templater — and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after <create|rename|move> (<keys>); restored`.

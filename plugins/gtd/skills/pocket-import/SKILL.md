@@ -49,6 +49,7 @@ move a confirmed note out of it.
    - Every other key the note arrived with stays exactly as it was — except `status`, which a
      Pocket note never carries: show it in the proposal and drop it.
    - The body is not touched and the note is not renamed.
+   - After the batch's last move, run the settle check (rule 10 in `CLAUDE.md`): 5 seconds after the last write, re-read the frontmatter of every note you moved; where any value differs from what you wrote (YAML formatting aside), Templater rewrote it — write yours back in place and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after <create|rename|move> (<keys>); restored`.
 
    Then go on to the next batch. The human may stop at any batch; running the command again picks
    up whatever is still in the folder.
