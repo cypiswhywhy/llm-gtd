@@ -1,7 +1,7 @@
 {
   "name": "gtd",
   "displayName": "LLM-GTD",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "GTD and Pocket boards in an Obsidian vault, kept by Claude Code: install, triage, review, projects, Pocket, schema migrations",
   "author": {
     "name": "Cyprian Nosek"

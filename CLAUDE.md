@@ -26,14 +26,14 @@ mirror any more.
 | `import-notion.md` | **Deliberately not a skill.** Standalone paste-in prompt for bulk-loading a Notion / CSV export into an installed vault — edit it freely, no changelog entry. It briefly shipped as a fetched `/gtd-import` skill in v5; that was withdrawn because skills then only refreshed on a schema bump. Plugin skills don't have that problem any more, but importing still happens once per vault, which is the argument for a prompt over a skill. |
 | `docs/demo/` | Source of the README demo: `demo.html` is a scripted animation (a mock of Obsidian + Claude Code, not a recording), `render.mjs` screenshots it frame by frame in headless Chrome and writes `docs/assets/demo.mp4` + `demo.gif` (needs `google-chrome`, `ffmpeg`, Node 22). Run `node docs/demo/render.mjs`; `--stills 5,30` previews single frames. The terminal dialogue paraphrases what the skills do — re-render if a skill's user-visible flow changes. |
 
-Two notes on the vault files that live nowhere else: the Templater template and the clipper both
+Two notes on the vault files that live nowhere else: the Templater templates and the clippers all
 stamp `kanban_order` as minus the creation time in ms (`-1 * Number(tp.date.now("x"))`,
 `{{date|date:"x"|calc:"*-1"}}`), and the clipper's property type must be `number` — as text it sorts
 as a string and falls below every real number.
 
 ## Schema versioning — the core invariant
 
-The vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 16**). Changing anything
+The vault `CLAUDE.md` carries a `**Schema version: N.**` marker (**currently 17**). Changing anything
 in `plugins/gtd/vault/` that an existing vault already has is a schema change:
 
 1. Append a `### vN → vN+1` entry to the changelog in `plugins/gtd/skills/update/SKILL.md`.
@@ -131,8 +131,21 @@ may differ.
   `main.js`), so a new category never needs a `Pocket/Board.base` edit. `/gtd:pocket`'s sweep proposes only done
   items the user could want again — lasting content, or the runners-up of a decision that recurs (holiday
   places not chosen) — never every done item: being done is not a reason to keep something.
-- **The Templater folder-template setting is the only remaining truly-manual step** — prompts must
-  REPORT it to the user, never attempt it.
+- **The Templater templates print only the keys a note lacks** (v17). Templater 2.x applies a
+  folder template to every note whose body is empty when it appears — a new note, a `+` card, and a
+  note renamed or moved in from outside Obsidian, which is what `mv` does — and merges the template's
+  frontmatter into the note's with the template's non-empty values winning (`merge_template_output`
+  in its `main.js`). So both templates are a `<%* %>` block that reads the note through
+  `tp.file.content` and prints a key only when it is missing — not `tp.frontmatter`, which comes from
+  the metadata cache and can lag behind a file that just appeared. A template that prints a plain
+  frontmatter block, or any key unconditionally, brings back v16's bug: every `+` card lands in
+  `inbox` and every item triage renames goes back to `inbox`. It also means the board's `+` button
+  copies no frontmatter from `newItemTemplate` (Obsidian copies only a YAML block) — Templater fills
+  the note in instead. Every skill that creates, renames or moves a note into `GTD/Items/`,
+  `GTD/Archive/` or `Pocket/Notes/` ends that step with rule 10's settle check, in case a vault still
+  runs an older template.
+- **The Templater folder-template setting is the only remaining truly-manual step** — two mappings
+  since v17, `GTD/Items` and `Pocket/Notes`. Prompts must REPORT it to the user, never attempt it.
 
 ## Releasing
 

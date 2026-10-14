@@ -36,6 +36,6 @@ Read all notes in `GTD/Items/` and every project note in `GTD/Projects/`, then e
 
 1. Present a **review report** grouped by check, with a proposed action per finding (skip empty checks), every finding numbered `#1`, `#2`, … in one sequence across the whole report (rule 9 in `CLAUDE.md`). Focus/next/waiting counts plus active/stalled project counts at the top give the board's health at a glance.
 2. Ask the user to confirm all / pick exceptions by number.
-3. Apply confirmed changes: frontmatter edits, `mv` to Archive or Pocket, bump `updated` on every touched note.
+3. Apply confirmed changes: frontmatter edits, `mv` to Archive or Pocket, bump `updated` on every touched note. Then run the settle check (rule 10 in `CLAUDE.md`): 5 seconds after the last write, re-read the frontmatter of every note you moved; where any value differs from what you wrote (YAML formatting aside), Templater rewrote it — write yours back in place and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after <create|rename|move> (<keys>); restored`.
 4. Append to `GTD/Log.md`: one `[review]` summary line plus one `[archive]` line per archived item and one `[pocket]` line per item moved to Pocket.
 5. Close with the 1–3 things that most need the user's attention this week.

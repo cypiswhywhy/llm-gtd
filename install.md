@@ -15,7 +15,7 @@ It works on a **fresh vault** or an **existing one**. Everything it writes lives
 
    `--scope project` records the plugin in the vault's `.claude/settings.json`, so the `/gtd:*` commands appear only in this vault.
 3. **Run `/gtd:install`** in Claude Code at the vault root. It writes the schema (`CLAUDE.md`), both boards, the templates and the clipper templates.
-4. **Flip one switch** — no prompt can do it, it lives in Templater's settings. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add folder `GTD/Items` → template `Templates/GTD Item.md`. Now any note you create in `GTD/Items/` gets the schema frontmatter.
+4. **Flip one switch** — no prompt can do it, it lives in Templater's settings. Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add folder `GTD/Items` → template `Templates/GTD Item.md` and folder `Pocket/Notes` → template `Templates/Pocket Note.md`. Now any note you create in either folder, from a board's `+` button too, gets the schema frontmatter. The templates fill in only the keys a note is missing, so a card added to the `next` column stays in `next`.
 
 Card order inside a column is the plugin's own `kanban_order` property, **not** the Bases "Sort" setting — `Base Board` ignores that on a kanban view by design. Every new item is stamped with minus its creation timestamp, so the newest sits at the top of its column. Dragging still works and takes precedence.
 

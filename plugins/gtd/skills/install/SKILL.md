@@ -39,12 +39,12 @@ Report which of the files below already existed and how you handled each before 
 
 ## Also create
 
-- Empty folders `GTD/Items/`, `GTD/Projects/`, `GTD/Archive/` and `Pocket/Notes/` (add one placeholder item in `GTD/Items/` from the template so I can see the format — fill in the Templater expressions yourself: today's date, and minus the current time in milliseconds for `kanban_order`).
+- Empty folders `GTD/Items/`, `GTD/Projects/`, `GTD/Archive/` and `Pocket/Notes/` (add one placeholder item in `GTD/Items/` so I can see the format, with the frontmatter the template prints for an empty note — `status: inbox`, `tags: []`, today's `created` and `updated`, an empty `source:`, and `kanban_order` minus the current time in milliseconds — then run the settle check from rule 10 of `CLAUDE.md` on it).
 - **Nothing in `.obsidian/`.** Do not create CSS snippets and do not edit `appearance.json` or any other Obsidian config — the `Base Board` plugin needs no styling help from us.
-- Log the initial setup as the first line after the `---` in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v16): boards, templates, schema created.`
+- Log the initial setup as the first line after the `---` in `GTD/Log.md`: `YYYY-MM-DD HH:MM [capture] Vault initialized (schema v17): boards, templates, schema created.`
 
 ## Report
 
-Say what you made, then tell me the one step no prompt can do, because it lives in Obsidian's own plugin settings: Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add folder `GTD/Items` → template `Templates/GTD Item.md`. Never attempt it yourself.
+Say what you made, then tell me the one step no prompt can do, because it lives in Obsidian's own plugin settings: Settings → Templater → turn on **Trigger Templater on new file creation**, then under **Folder Templates** add folder `GTD/Items` → template `Templates/GTD Item.md` and folder `Pocket/Notes` → template `Templates/Pocket Note.md`. Never attempt it yourself.
 
 Before writing anything, confirm you understand the schema, then create all of the above in one pass.

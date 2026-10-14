@@ -31,7 +31,8 @@ It's inspired by the [llm-wiki idea](https://gist.github.com/karpathy/442a6bf555
    ```
 
 4. **Flip one switch.** Settings → Templater → turn on *Trigger Templater on new file creation*, and
-   add a Folder Template: `GTD/Items` → `Templates/GTD Item.md`.
+   add two Folder Templates: `GTD/Items` → `Templates/GTD Item.md` and
+   `Pocket/Notes` → `Templates/Pocket Note.md`.
 
 Done. Open `GTD/Board.base` to see your board.
 
@@ -104,6 +105,20 @@ boards instead: tags lost their colors, columns stopped collapsing. `Base Board`
 1. In Obsidian: Settings → Community plugins → update `Base Board` to 2.6.0 or newer.
 2. Update the `gtd` plugin — see [Updating](#updating) below.
 3. In Claude Code, in the vault: `/gtd:update`. It points both boards at the renamed view.
+
+## Items jumping back to `inbox`?
+
+Up to schema v16 the Templater templates wrote their own `status: inbox` over a note's frontmatter.
+Templater fills in every note with no body that appears in `GTD/Items/`, and that includes a note
+renamed from outside Obsidian. So a card added with `+` to any column landed in `inbox`, and an item
+`/gtd:triage` renamed went back to `inbox` with a new `created` date. The v17 templates fill in only
+the keys a note is missing.
+
+1. Update the `gtd` plugin — see [Updating](#updating) below.
+2. In Claude Code, in the vault: `/gtd:update`. It replaces both templates and lists items whose
+   status the old template probably reset, so you can put them back.
+3. In Obsidian: Settings → Templater → Folder Templates → add `Pocket/Notes` →
+   `Templates/Pocket Note.md`, so cards from the Pocket board's `+` get their frontmatter too.
 
 ## Updating
 

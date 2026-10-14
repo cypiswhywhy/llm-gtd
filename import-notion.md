@@ -200,6 +200,8 @@ Only after confirmation.
 
 Write each file into `GTD/Items/`, or `GTD/Archive/` per the done-routing rule.
 
+Then, per batch, the settle check (rule 10 in the vault's `CLAUDE.md`): Obsidian treats every file you write there as a new note, and Templater may apply its folder template to it. Every item here has an `## Imported` body, which keeps Templater off it, but check anyway: 5 seconds after the batch's last write, re-read each note's frontmatter; where any value differs from what you wrote (YAML formatting aside), write yours back in place and log `YYYY-MM-DD HH:MM [fix] "<title>": frontmatter rewritten after create (<keys>); restored`.
+
 After each batch, report progress (`50/312 …`) so a long import stays visible and interruptible.
 
 ## Step 5 — Log
